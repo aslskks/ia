@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Select User</title>
+<title>User Configuration</title>
 
 <style>
 
@@ -117,13 +117,6 @@ h2 {
 
 <div id="users"></div>
 
-<div class="new-user">
-
-<input id="newUser" placeholder="New user">
-
-<button onclick="createUser()">Create</button>
-
-</div>
 
 <button class="delete-all" onclick="deleteAllMessages()">
 Delete All Messages
@@ -222,7 +215,7 @@ async function logout() {
 
     await fetch("/logout", {
 
-        method:"POST"
+        method:"GET"
     })
 
     location.href="/login"

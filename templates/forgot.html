@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperar Contraseña</title>
+    <link rel="stylesheet" href="../static/style.css">
+    <style>
+        .forgot-container {
+            width: 400px;
+            background: #000;
+            box-shadow: 0 0 50px #0ef;
+            border-radius: 20px;
+            padding: 40px;
+            border: 2px solid #0ef;
+            text-align: center;
+        }
+        .forgot-container h2 {
+            color: #0ef;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        .forgot-container p {
+            color: #ccc;
+            font-size: 14px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        .form-group {
+            margin: 20px 0;
+            text-align: left;
+        }
+        .form-group label {
+            color: #0ef;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            background: #111;
+            border: 2px solid #0ef;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .form-group input:focus {
+            outline: none;
+            box-shadow: 0 0 10px #0ef;
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background: #0ef;
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        .btn-submit:hover {
+            box-shadow: 0 0 20px #0ef;
+            transform: scale(1.02);
+        }
+        .back-link {
+            margin-top: 20px;
+        }
+        .back-link a {
+            color: #0ef;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+        .success-message {
+            background-color: #00aa44;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border-left: 4px solid #00ff00;
+        }
+        .error-message {
+            background-color: #ff4444;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border-left: 4px solid #ff0000;
+        }
+    </style>
+</head>
+<body>
+    <div class="forgot-container">
+        <h2>🔐 Recuperar Contraseña</h2>
+        <p>Ingresa tu correo electrónico y te enviaremos un enlace para recuperar tu contraseña.</p>
+        
+        {% if message %}
+            <div class="success-message">✓ {{ message }}</div>
+        {% endif %}
+        
+        {% if error %}
+            <div class="error-message">✗ {{ error }}</div>
+        {% endif %}
+        
+        <form action="/forgot" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="form-group">
+                <label for="email">Correo Electrónico</label>
+                <input type="email" id="email" name="email" required placeholder="tu@email.com">
+            </div>
+            
+            <button type="submit" class="btn-submit">Enviar Enlace de Recuperación</button>
+        </form>
+        
+        <div class="back-link">
+            <a href="/">← Volver al Login</a>
+        </div>
+    </div>
+</body>
+</html>

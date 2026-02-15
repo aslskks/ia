@@ -6,346 +6,680 @@
 
 <style>
 
+/* =========================================================
+   CHATGPT-LEVEL PROFESSIONAL UI
+   Version: ULTRA PRO 2026
+========================================================= */
+
+:root {
+
+    --bg-main: #343541;
+    --bg-sidebar: #202123;
+    --bg-hover: #2a2b32;
+    --bg-active: #2f3038;
+
+    --bg-user: #19c37d;
+    --bg-ai: #444654;
+
+    --bg-input: #40414f;
+
+    --border: #2a2b32;
+    --border-light: #3a3b47;
+
+    --text-main: #ececf1;
+    --text-secondary: #b4b4be;
+    --text-muted: #8e8ea0;
+
+    --accent: #19c37d;
+    --accent-hover: #13a46b;
+
+    --radius: 12px;
+
+    --shadow:
+        0 1px 2px rgba(0,0,0,0.2),
+        0 8px 24px rgba(0,0,0,0.35);
+
+}
+
 /* RESET */
 
 * {
+
     box-sizing: border-box;
+
 }
+
+html, body {
+
+    margin: 0;
+    height: 100%;
+
+    font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        Segoe UI,
+        Roboto;
+
+    background: var(--bg-main);
+    color: var(--text-main);
+
+}
+
+/* LAYOUT */
 
 body {
-    margin: 0;
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    background: #343541;
-    color: #ececf1;
-    height: 100vh;
-    display: flex;
-}
 
+    display: flex;
+    overflow: hidden;
+
+}
 
 /* SIDEBAR */
 
 .sidebar {
+
     width: 260px;
-    background: #202123;
+    background: var(--bg-sidebar);
+
     display: flex;
     flex-direction: column;
-    border-right: 1px solid #2a2b32;
-}
 
-.sidebar-header {
-    padding: 10px;
-    border-bottom: 1px solid #2a2b32;
+    border-right: 1px solid var(--border);
+
 }
 
 .new-chat {
-    width: 100%;
-    padding: 10px;
+
+    margin: 12px;
+
+    padding: 12px;
+
+    border-radius: 8px;
+
+    border: 1px solid var(--border-light);
+
     background: transparent;
-    border: 1px solid #565869;
-    color: #ececf1;
-    border-radius: 6px;
+
+    color: white;
+
     cursor: pointer;
+
+    transition: 0.2s;
+
 }
 
 .new-chat:hover {
-    background: #2a2b32;
+
+    background: var(--bg-hover);
+    border-color: var(--accent);
+
 }
 
+/* CHAT LIST */
+
 .chat-list {
+
     flex: 1;
     overflow-y: auto;
+
+    padding: 8px;
+
 }
 
 .chat-item {
+
     padding: 12px;
+
+    border-radius: 8px;
+
     cursor: pointer;
-    color: #ececf1;
-    border-bottom: 1px solid #2a2b32;
+
+    transition: 0.15s;
+
 }
 
 .chat-item:hover {
-    background: #2a2b32;
+
+    background: var(--bg-hover);
+
 }
 
 .chat-item.active {
-    background: #343541;
-}
 
+    background: var(--bg-active);
+
+}
 
 /* MAIN */
 
 .main {
+
     flex: 1;
+
     display: flex;
     flex-direction: column;
-    height: 100vh;
-}
 
+}
 
 /* MESSAGES */
 
 .messages {
+
     flex: 1;
+
     overflow-y: auto;
-    padding: 20px;
+
+    padding: 40px 20px;
+
 }
 
-
-/* MESSAGE CONTAINER */
+/* MESSAGE ROW */
 
 .message {
+
     display: flex;
-    margin-bottom: 20px;
+
+    gap: 14px;
+
+    margin-bottom: 28px;
+
+    animation: fadeUp 0.25s ease;
+
 }
 
-.message.user {
-    justify-content: flex-end;
+/* AVATAR */
+
+.avatar {
+
+    width: 32px;
+    height: 32px;
+
+    border-radius: 6px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-weight: bold;
+
+    flex-shrink: 0;
+
 }
 
-.message.assistant {
-    justify-content: flex-start;
+.avatar.user {
+
+    background: var(--accent);
+    color: white;
+
 }
 
+.avatar.ai {
 
-/* BUBBLES */
+    background: #565869;
+
+}
+
+/* BUBBLE */
 
 .bubble {
-    max-width: 70%;
-    padding: 12px 16px;
-    border-radius: 12px;
-    white-space: pre-wrap;
-    line-height: 1.5;
-    font-size: 15px;
+
+    padding: 14px 18px;
+
+    border-radius: var(--radius);
+
+    box-shadow: var(--shadow);
+
+    line-height: 1.6;
+
+    max-width: 720px;
+
 }
-
-
-/* USER bubble */
 
 .message.user .bubble {
-    background: #10a37f;
-    color: white;
-    border-bottom-right-radius: 4px;
+
+    background: var(--bg-user);
+
 }
-
-
-/* ASSISTANT bubble */
 
 .message.assistant .bubble {
-    background: #444654;
-    color: #ececf1;
-    border-bottom-left-radius: 4px;
+
+    background: var(--bg-ai);
+
 }
 
+/* STREAM CURSOR */
 
-/* INPUT AREA */
+.cursor {
+
+    display: inline-block;
+
+    width: 8px;
+    height: 18px;
+
+    background: white;
+
+    margin-left: 4px;
+
+    animation: blink 1s infinite;
+
+}
+
+@keyframes blink {
+
+    0%,50%,100% {opacity:1}
+    25%,75% {opacity:0}
+
+}
+
+/* INPUT */
 
 .input-area {
-    padding: 15px;
-    background: #343541;
-    border-top: 1px solid #2a2b32;
+
+    padding: 20px;
+
 }
 
 .input-box {
+
     display: flex;
-    background: #40414f;
-    border-radius: 8px;
-    padding: 5px;
-}
 
-.input-box input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: white;
+    align-items: center;
+
+    background: var(--bg-input);
+
+    border-radius: 14px;
+
     padding: 10px;
-    font-size: 15px;
+
+    box-shadow: var(--shadow);
+
 }
 
-.input-box input::placeholder {
-    color: #8e8ea0;
+/* TEXTAREA */
+
+textarea {
+
+    flex: 1;
+
+    background: transparent;
+
+    border: none;
+
+    outline: none;
+
+    color: white;
+
+    resize: none;
+
+    font-size: 15px;
+
+    max-height: 200px;
+
 }
+
+/* SEND */
 
 .send {
-    background: #10a37f;
+
+    background: var(--accent);
+
     border: none;
-    color: white;
+
     padding: 10px 18px;
-    border-radius: 6px;
+
+    border-radius: 8px;
+
     cursor: pointer;
+
+    transition: 0.2s;
+
 }
 
 .send:hover {
-    background: #0e8f6f;
+
+    background: var(--accent-hover);
+
+    transform: scale(1.05);
+
 }
 
+/* CODE */
 
-/* CODE BLOCK */
+pre {
 
-.code-container {
-    position: relative;
     background: #1e1e1e;
-    border-radius: 8px;
-    margin-top: 8px;
-}
 
-.code-container pre {
-    margin: 0;
     padding: 14px;
+
+    border-radius: 8px;
+
     overflow-x: auto;
-    color: #d4d4d4;
-    font-family: Consolas, monospace;
-    font-size: 14px;
+
 }
-
-
-/* COPY BUTTON */
-
-.copy-btn {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    background: #10a37f;
-    border: none;
-    color: white;
-    padding: 4px 8px;
-    font-size: 12px;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.copy-btn:hover {
-    background: #0e8f6f;
-}
-
-
-/* WRITING INDICATOR */
-
-.writing-indicator {
-    color: #8e8ea0;
-    font-style: italic;
-}
-
-.writing-dots::after {
-    content: "...";
-    animation: dots 1.5s infinite;
-}
-
-@keyframes dots {
-    0% { content: "."; }
-    33% { content: ".."; }
-    66% { content: "..."; }
-}
-
 
 /* SCROLLBAR */
 
 ::-webkit-scrollbar {
-    width: 8px;
-}
 
-::-webkit-scrollbar-track {
-    background: transparent;
+    width: 8px;
+
 }
 
 ::-webkit-scrollbar-thumb {
+
     background: #565869;
-    border-radius: 4px;
+    border-radius: 6px;
+
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background: #6b6c7b;
+/* ANIMATION */
+
+@keyframes fadeUp {
+
+    from {
+
+        opacity: 0;
+        transform: translateY(10px);
+
+    }
+
+    to {
+
+        opacity: 1;
+        transform: translateY(0);
+
+    }
+
 }
-.chat-item {
-    padding: 12px;
+
+/* MOBILE */
+
+@media (max-width: 800px) {
+
+    .sidebar {
+
+        display: none;
+
+    }
+
+}
+/* =========================
+   CHAT MENU (3 DOTS)
+========================= */
+
+.chat-menu {
+
+    position: fixed;
+
+    min-width: 180px;
+
+    background: rgba(32,33,35,0.98);
+
+    backdrop-filter: blur(12px);
+
+    border-radius: 10px;
+
+    border: 1px solid #3a3b47;
+
+    box-shadow:
+        0 10px 30px rgba(0,0,0,0.4),
+        0 0 0 1px rgba(255,255,255,0.02);
+
+    padding: 6px;
+
+    z-index: 9999;
+
+    animation: menuFade 0.15s ease;
+
+}
+
+/* ITEM */
+
+.chat-menu-item {
+
+    padding: 10px 14px;
+
+    border-radius: 6px;
+
     cursor: pointer;
+
+    font-size: 14px;
+
     color: #ececf1;
-    border-bottom: 1px solid #2a2b32;
+
+    transition: 0.15s;
+
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 8px;
+
 }
 
-.chat-title {
-    flex: 1;
+/* HOVER */
+
+.chat-menu-item:hover {
+
+    background: #2a2b32;
+
 }
 
+/* DELETE */
+
+.chat-menu-item.delete {
+
+    color: #ff6b6b;
+
+}
 .chat-menu-btn {
+
     background: transparent;
     border: none;
+
     color: #8e8ea0;
+
     font-size: 18px;
+
     cursor: pointer;
-    padding: 4px 8px;
+
     border-radius: 6px;
+
+    padding: 4px 8px;
+
+    opacity: 0;
+
+    transition: 0.2s;
+
+}
+
+/* show only on hover */
+
+.chat-item:hover .chat-menu-btn {
+
+    opacity: 1;
+
 }
 
 .chat-menu-btn:hover {
+
     background: #2a2b32;
     color: white;
+
 }
 
-.chat-menu {
-    position: fixed;
-    background: #202123;
-    border: 1px solid #3a3b47;
-    border-radius: 8px;
-    overflow: hidden;
-    z-index: 1000;
-    min-width: 140px;
+.chat-menu-item.delete:hover {
+
+    background: rgba(255,107,107,0.1);
+
 }
 
-.chat-menu-item {
-    padding: 10px 14px;
-    cursor: pointer;
-}
+/* ANIMATION */
 
-.chat-menu-item:hover {
-    background: #2a2b32;
-}
+@keyframes menuFade {
 
-.chat-menu-item.delete {
-    color: #ff6b6b;
-}
-.sidebar-footer {
-    padding: 10px;
-    border-top: 1px solid #2a2b32;
-}
+    from {
 
-.user-info {
-    padding: 10px;
-    background: #2a2b32;
-    border-radius: 6px;
-    cursor: pointer;
+        opacity: 0;
+        transform: translateY(-6px) scale(0.96);
+
+    }
+
+    to {
+
+        opacity: 1;
+        transform: translateY(0) scale(1);
+
+    }
+
+}
+/* =========================
+   USER CARD
+========================= */
+
+.user-card {
+
     display: flex;
+    align-items: center;
     justify-content: space-between;
+
+    padding: 10px;
+
+    border-radius: 10px;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+
 }
 
-.user-info:hover {
-    background: #3a3b47;
+.user-card:hover {
+
+    background: #2a2b32;
+
 }
+
+/* LEFT SIDE */
+
+.user-left {
+
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+}
+
+/* AVATAR */
+
+.user-avatar {
+
+    width: 36px;
+    height: 36px;
+
+    border-radius: 8px;
+
+    background: #19c37d;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-weight: bold;
+
+    color: white;
+
+}
+
+/* TEXT */
+
+.user-text {
+
+    display: flex;
+    flex-direction: column;
+
+}
+
+.user-name {
+
+    font-size: 14px;
+    font-weight: 500;
+
+}
+
+.user-email {
+
+    font-size: 12px;
+    color: #8e8ea0;
+
+}
+
+/* RIGHT ICON */
+
+.user-arrow {
+
+    color: #8e8ea0;
+
+    font-size: 18px;
+
+}
+
+/* =========================
+   USER MENU
+========================= */
 
 .user-menu {
+
     position: fixed;
-    background: #202123;
+
+    min-width: 220px;
+
+    background: rgba(32,33,35,0.98);
+
+    backdrop-filter: blur(10px);
+
+    border-radius: 10px;
+
     border: 1px solid #3a3b47;
-    border-radius: 8px;
-    overflow: hidden;
-    z-index: 1000;
-    min-width: 180px;
+
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+
+    padding: 6px;
+
+    animation: menuFade 0.15s ease;
+
 }
 
+/* ITEM */
+
 .user-menu-item {
-    padding: 10px;
+
+    padding: 12px 14px;
+
+    border-radius: 6px;
+
     cursor: pointer;
+
+    font-size: 14px;
+
+    transition: 0.15s;
+
 }
 
 .user-menu-item:hover {
+
     background: #2a2b32;
+
 }
 
 .user-menu-item.danger {
+
     color: #ff6b6b;
+
+}
+
+.user-menu-item.danger:hover {
+
+    background: rgba(255,107,107,0.1);
+
 }
 
 
@@ -355,21 +689,39 @@ body {
 
 <body>
 
-<div class="sidebar">
+<div class="sidebar-footer">
 
-    <div class="sidebar-header">
-        <button class="new-chat" onclick="newChat()">+ New Chat</button>
-    </div>
+    <div class="user-card" onclick="toggleUserMenu(event)">
 
-    <div class="chat-list" id="chatList"></div>
-    <div class="sidebar-footer">
 
-    <div class="user-info" onclick="toggleUserMenu()">
-        <span id="username">User</span>
-        <span>⚙</span>
+        <div class="user-left">
+
+            <div class="user-avatar" id="userAvatar">
+                U
+            </div>
+
+            <div class="user-text">
+
+                <div class="user-name" id="username">
+                    User Name
+                </div>
+
+                <div class="user-email" id="userEmail">
+                    user@email.com
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="user-arrow">
+            ⋯
+        </div>
+
     </div>
 
 </div>
+
 
 
 </div>
@@ -380,8 +732,9 @@ body {
 
     <div class="input-area">
         <div class="input-box">
-            <input id="input" placeholder="Send a message..." onkeydown="if(event.key==='Enter')sendMessage()">
-            <button class="send" onclick="sendMessage()">Send</button>
+<textarea id="input" placeholder="Send a message..."></textarea>
+<button class="send" onclick="sendMessage()">Send</button>
+
         </div>
     </div>
 
@@ -706,33 +1059,79 @@ async function deleteChat(chatId) {
 }
 let userMenu = null
 
-function toggleUserMenu() {
+function toggleUserMenu(event) {
 
-    closeUserMenu()
+    event.stopPropagation()
+
+    if (userMenu) {
+        closeUserMenu()
+        return
+    }
 
     const menu = document.createElement("div")
     menu.className = "user-menu"
 
     menu.innerHTML = `
-        <div class="user-menu-item" onclick="selectUser()">Switch user</div>
-        <div class="user-menu-item" onclick="clearAllChats()">Delete all chats</div>
-        <div class="user-menu-item danger" onclick="logout()">Logout</div>
+        <div class="user-menu-item" onclick="selectUser()">
+            👤 Switch account
+        </div>
+
+        <div class="user-menu-item" onclick="clearAllChats()">
+            🧹 Clear conversations
+        </div>
+
+        <div class="user-menu-item danger" onclick="logout()">
+            🚪 Log out
+        </div>
     `
 
     document.body.appendChild(menu)
 
-    const rect = document.querySelector(".user-info").getBoundingClientRect()
+    const rect = document
+        .querySelector(".user-card")
+        .getBoundingClientRect()
 
-    menu.style.bottom = "60px"
+    let menuTop = rect.top - menu.offsetHeight - 8
+
+    if (menuTop < 10)
+        menuTop = rect.bottom + 8
+
+    menu.style.top = menuTop + "px"
     menu.style.left = rect.left + "px"
 
     userMenu = menu
 
     setTimeout(() => {
-        document.addEventListener("click", closeUserMenuOnce)
-    }, 0)
+        document.addEventListener("click", closeUserMenu)
+    }, 10)
 }
 
+function closeUserMenu() {
+
+    if (userMenu) {
+
+        userMenu.remove()
+        userMenu = null
+
+        document.removeEventListener("click", closeUserMenu)
+    }
+
+}
+
+fetch("/me")
+.then(r => r.json())
+.then(user => {
+
+    document.getElementById("username").innerText = user.name
+    document.getElementById("userEmail").innerText = user.email
+    document.getElementById("userAvatar").innerText =
+        user.name.charAt(0).toUpperCase()
+
+})
+
+function logout() {
+    location.href = "/logout"
+}
 function closeUserMenuOnce() {
     closeUserMenu()
     document.removeEventListener("click", closeUserMenuOnce)

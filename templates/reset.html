@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Recuperar Contraseña</title>
+    <style>
+        /* RESET BÁSICO */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', Arial, sans-serif; }
+
+        body {
+            background: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background: #fff;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        form {
+            margin-top: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="password"]:focus {
+            border-color: #0ef;
+            outline: none;
+        }
+
+        .password-strength {
+            margin-top: 5px;
+            font-size: 13px;
+            color: #888;
+        }
+
+        .strength-bar {
+            width: 100%;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            margin-top: 4px;
+        }
+
+        .strength-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: #0ef;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        .btn-submit {
+            background: #0ef;
+            color: #000;
+            padding: 12px;
+            width: 100%;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .btn-submit:hover {
+            background: #00cfff;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 15px;
+            color: #0ef;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+        .error-message {
+            background-color: #ff4444;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border-left: 4px solid #ff0000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🔐 Restablecer Contraseña</h2>
+        <form action="{{ url_for('reset', code=code) }}" method="POST">
+            {% if error %}
+            <div class="error-message" id="hola">✗ {{ error }}</div>
+            {% endif %}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="code" value="{{ code }}">
+            <div class="form-group">
+                <label for="new_password">Nueva Contraseña</label>
+                <input type="password" id="new_password" name="new_password" placeholder="Ingresa tu nueva contraseña" required>
+                <div class="password-strength">
+                    Fortaleza:
+                    <div class="strength-bar">
+                        <div class="strength-bar-fill" id="strengthBar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">Confirmar Contraseña</label>
+                <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirma tu contraseña" required>
+            </div>
+
+            <button type="submit" class="btn-submit" onclick="return validatePasswords()">Resetear Contraseña</button>
+        </form>
+        <a href="{{ url_for('index') }}">Volver al inicio</a>
+    </div>
+
+    <script>
+        // Validar que las contraseñas coincidan
+        function validatePasswords() {
+            const pass = document.getElementById('new_password').value;
+            const confirm = document.getElementById('confirm_password').value;
+            const hola = document.getElementById("hola");
+            if(pass !== confirm) {
+                hola.textContent = "✗ Error the passwords are not the same"
+                hola.style.color = "red !important";
+                return false;
+            }
+            return true;
+        }
+
+        // Barra de fuerza de contraseña simple
+        const passwordInput = document.getElementById('new_password');
+        const strengthBar = document.getElementById('strengthBar');
+
+        passwordInput.addEventListener('input', () => {
+            const val = passwordInput.value;
+            let strength = 0;
+            if(val.length >= 6) strength += 25;
+            if(/[A-Z]/.test(val)) strength += 25;
+            if(/[0-9]/.test(val)) strength += 25;
+            if(/[^A-Za-z0-9]/.test(val)) strength += 25;
+            strengthBar.style.width = strength + '%';
+        });
+    </script>
+</body>
+</html>

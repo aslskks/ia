@@ -8,6 +8,12 @@ import mysql.connector as mysql
 from flask_wtf import CSRFProtect
 from passlib.hash import argon2
 import requests
+import smtplib
+import ssl
+from email.message import EmailMessage
+import ssl
+from datetime import timedelta, datetime
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
 csrf = CSRFProtect(app)
@@ -16,6 +22,11 @@ SECRET_KEY_V2 = os.getenv("SECRET_KEY_V2")
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SECURE"] = False  # True en producción
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+sender_email = "example901231@gmail.com"
+password = os.getenv("GMAIL")
+smtp_server = "smtp.gmail.com"
+app.permanent_session_lifetime = timedelta(days=60)
+port = 465
 client = ollama.Client(
     host="http://127.0.0.1:11434"
 )
@@ -47,7 +58,8 @@ CONTEXT:
 - Ask for clarification if the request is ambiguous.
 
 LANGUAGE:
-- Always respond in the same language as the user.
+- ALWAYS respond in the same language as the user.
+- DONT respond in another lenguage except the user ask for.
 
 CLARITY:
 - Be concise but complete.
@@ -68,8 +80,9 @@ CODE RESPONSE RULES (STRICT):
 - ALWAYS specify the language.
 
 Example:
-```python
+```
 print("hello")
+```
 NEVER:
 
 Output code outside code blocks
@@ -176,6 +189,7 @@ write ```
 Correct response:
 ``
 """
+
 def open_conn():
     conn = mysql.connect(host="localhost", user="root", password="hola", database="chat")
     return conn, conn.cursor()
@@ -184,6 +198,7 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user VARCHAR(50) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    email VARCHAR(50) UNIQUE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 """)
@@ -211,10 +226,83 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS messages (
 
 );
 """)
+cursor.execute("""CREATE TABLE IF NOT EXISTS codes(
+    user VARCHAR(50) UNIQUE NOT NULL,
+    code VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
 conn.commit()
 cursor.close()
 conn.close()
+@app.route("/me")
+@app.route("/me")
+def me():
 
+    if "user_id" not in session:
+        return jsonify({"error": "not logged in"}), 401
+
+    db, cursor = open_conn()
+    cursor.execute(
+        "SELECT user, email FROM users WHERE id=%s",
+        (session["user_id"],)
+    )
+    user, email = cursor.fetchone()
+    return jsonify(user, email)
+@app.route("/reset/<code>", methods=["GET", "POST"])
+def reset(code):
+    conn, cursor = open_conn()
+
+    if request.method == "GET":
+        try:
+            cursor.execute("SELECT user, created_at FROM codes WHERE code = %s", (code,))
+            rs = cursor.fetchone()
+            if rs is None:
+                return render_template("reset_invalid.html", error="The code is invalid or has already been used")
+            user, created_at = rs
+            if created_at + timedelta(hours=1) < datetime.now():
+                cursor.execute("DELETE FROM codes WHERE user = %s", (user,))
+                conn.commit()
+                cursor.close()
+                conn.close()
+                return render_template("reset_invalid.html", error="The code has already expired")
+            if rs is None:
+                return render_template("reset_invalid.html", error="The code is invalid or has already been used")
+            return render_template("reset.html", code=code)
+        except Exception as e:
+            print(e)
+            return render_template("reset_invalid.html", error=f"An error occurred {e}")
+        finally:
+            cursor.close()
+            conn.close()
+    conn, cursor = open_conn()
+    code = request.form.get("code")
+    new_password = request.form.get("new_password")
+    # Validación de seguridad
+
+    try:
+        cursor.execute("SELECT user FROM codes WHERE code = %s", (code,))
+        result = cursor.fetchone()
+        user = result[0]
+    except mysql.Error:
+        return render_template("reset_invalid.html", error="The code does not exists or has already been used")
+    except Exception as e:
+        return render_template("reset_invalid.html", error="Code is invalid")
+
+    cursor.execute("SELECT password_hash FROM users WHERE user = %s", (user,))
+    old_hash = cursor.fetchone()
+    if argon2.verify(new_password, old_hash[0]):
+        return render_template("reset.html", code=code, error="The new password is the same as the old one")
+    cursor.execute("DELETE FROM codes WHERE user = %s", (user,))
+    password_hash = argon2.hash(new_password)
+    cursor.execute("SELECT email FROM users WHERE user = %s", (user,))
+    res = cursor.fetchone()
+    send_email(res[0], "Password changed", "Password changed", "Dashboard", "http://127.0.0.1:5000/dashboard")
+    cursor.execute("UPDATE users SET password_hash = %s WHERE user = %s", (password_hash, user))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return render_template("index.html", message="Password Changed now login")
 @app.route("/new_chat", methods=["POST"])
 @csrf.exempt
 def new_chat():
@@ -232,7 +320,76 @@ def new_chat():
     cursor.close()
     conn.close()
     return {"chat_id": chat_id}
+def send_email(receiver, subject, title, button_text, link):
+    text_body = f"""
+{title}
 
+This link will expire in 1 hour.
+
+Open this link in your browser:
+{link}
+
+If you did not request this, ignore this email.
+"""
+
+    html_body = f"""
+    <html>
+    <body style="margin:0;padding:0;background:#f4f4f4;font-family:Helvetica,Arial,sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+                <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0"
+                        style="background:#ffffff;margin:40px auto;padding:40px;border-radius:10px;">
+                        
+                        <tr>
+                            <td align="center" style="font-size:24px;font-weight:bold;color:#000;">
+                                {title}
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td align="center" style="font-size:16px;color:#333;line-height:1.6;padding:30px 0;">
+                                This link will expire in 1 hour.<br><br>
+
+                                <a href="{link}"
+                                    style="background:#0ef;color:#000;padding:12px 24px;
+                                            border-radius:6px;text-decoration:none;font-weight:bold;">
+                                    {button_text}
+                                </a><br><br>
+
+                                If you did not request this, ignore this email.
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td align="center" style="font-size:12px;color:#888;">
+                                © 2026 Your Company<br><br>
+                                Or copy this link into your browser:<br>
+                                <a href="{link}" style="color:#0bf;">{link}</a>
+                            </td>
+                        </tr>
+
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = sender_email
+    msg["To"] = receiver
+
+    # ✅ THIS IS THE IMPORTANT PART
+    msg.set_content(text_body)              # plain text first
+    msg.add_alternative(html_body, subtype="html")  # html second
+
+    context = ssl.create_default_context()
+    with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+        server.login(sender_email, os.getenv("GMAIL"))
+        server.send_message(msg)
 def generate_chat_title(first_message):
 
     TITLE_PROMPT = f"""
@@ -368,12 +525,33 @@ def delete_all_messages():
     return "ok"
 
 
-@app.route("/logout", methods=["POST"])
+@app.route("/logout", methods=["GET"])
 def logout():
 
     session.clear()
+    return redirect(url_for("index"))
+@app.route("/forgot", methods=["GET", "POST"])
+def forgot():
+    if request.method == "GET":
+        return render_template("forgot.html")
+    conn, cursor = open_conn()
+    receiver_email = request.form.get("email")
+    code = os.urandom(32).hex()
 
-    return "ok"
+    cursor.execute("SELECT user FROM users WHERE email = %s", (receiver_email,))
+    result = cursor.fetchone()
+
+    if result:
+        user = result[0]
+        cursor.execute("DELETE FROM codes WHERE user = %s", (user,))
+        cursor.execute("INSERT INTO codes (user, code) VALUES (%s, %s)", (user, code))
+        conn.commit()
+        send_email(receiver_email, "Reset your password", "Reset your password", "Change your password", f"http://127.0.0.1:5000/reset/{code}")
+
+    cursor.close()
+    conn.close()
+
+    return render_template("forgot.html", message="If the email exists, instructions were sent")
 
 
 
@@ -609,6 +787,7 @@ def register():
 
     user = request.form.get("user")
     password = request.form.get("password")
+    email = request.form.get("email")
 
     cursor.execute("SELECT 1 FROM users WHERE user = %s", (user,))
     if cursor.fetchone():
@@ -681,8 +860,8 @@ def register():
     # =====================
     password_hash = argon2.hash(password)
     cursor.execute(
-        "INSERT INTO users (user, password_hash) VALUES (%s, %s)",
-        (user, password_hash)
+        "INSERT INTO users (user, email, password_hash) VALUES (%s, %s, %s)",
+        (user, email, password_hash)
     )
 
     conn.commit()
