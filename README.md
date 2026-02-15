@@ -19,5 +19,5 @@ python terminal.py
 ```
 or web
 ```bash
-python app.py
+python main.py
 ```
