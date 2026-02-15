@@ -5,9 +5,8 @@
 <title>AI Assistant</title>
 
 <style>
-/* =========================
-   GLOBAL
-========================= */
+
+/* RESET */
 
 * {
     box-sizing: border-box;
@@ -15,230 +14,234 @@
 
 body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Arial, sans-serif;
-    background: #f3f4f6;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: #343541;
+    color: #ececf1;
     height: 100vh;
     display: flex;
-    color: #111827;
 }
 
-/* =========================
-   SIDEBAR
-========================= */
+
+/* SIDEBAR */
 
 .sidebar {
-    width: 300px;
-    background: #ffffff;
-    border-right: 1px solid #e5e7eb;
+    width: 260px;
+    background: #202123;
     display: flex;
     flex-direction: column;
+    border-right: 1px solid #2a2b32;
 }
 
 .sidebar-header {
-    padding: 18px;
-    border-bottom: 1px solid #e5e7eb;
+    padding: 10px;
+    border-bottom: 1px solid #2a2b32;
 }
 
 .new-chat {
     width: 100%;
-    padding: 14px;
-    border: none;
-    background: #111827;
-    color: white;
-    border-radius: 12px;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid #565869;
+    color: #ececf1;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 15px;
-    font-weight: 600;
-    transition: all 0.2s ease;
 }
 
 .new-chat:hover {
-    background: #000;
-    transform: translateY(-1px);
+    background: #2a2b32;
 }
 
 .chat-list {
     flex: 1;
     overflow-y: auto;
-    padding: 8px;
 }
 
 .chat-item {
-    padding: 14px;
-    margin-bottom: 4px;
-    border-radius: 10px;
+    padding: 12px;
     cursor: pointer;
-    font-size: 15px;
-    transition: all 0.15s ease;
+    color: #ececf1;
+    border-bottom: 1px solid #2a2b32;
 }
 
 .chat-item:hover {
-    background: #f3f4f6;
+    background: #2a2b32;
 }
 
 .chat-item.active {
-    background: #e5e7eb;
-    font-weight: 600;
+    background: #343541;
 }
 
-/* =========================
-   MAIN AREA
-========================= */
+
+/* MAIN */
 
 .main {
     flex: 1;
     display: flex;
     flex-direction: column;
-    background: #ffffff;
+    height: 100vh;
 }
+
+
+/* MESSAGES */
 
 .messages {
     flex: 1;
     overflow-y: auto;
-    padding: 40px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    padding: 20px;
 }
 
-/* Message row */
+
+/* MESSAGE CONTAINER */
 
 .message {
     display: flex;
-    width: 100%;
+    margin-bottom: 20px;
 }
-
-/* User right */
 
 .message.user {
     justify-content: flex-end;
 }
 
-/* Bot left */
-
 .message.assistant {
     justify-content: flex-start;
 }
 
-/* Bubble base */
+
+/* BUBBLES */
 
 .bubble {
-    padding: 14px 18px;
-    border-radius: 18px;
     max-width: 70%;
-    font-size: 16px;
-    line-height: 1.6;
-    word-break: break-word;
+    padding: 12px 16px;
+    border-radius: 12px;
+    white-space: pre-wrap;
+    line-height: 1.5;
+    font-size: 15px;
 }
 
-/* User bubble style */
+
+/* USER bubble */
 
 .message.user .bubble {
-    background: #111827;
+    background: #10a37f;
     color: white;
     border-bottom-right-radius: 4px;
 }
 
-/* Bot bubble style */
+
+/* ASSISTANT bubble */
 
 .message.assistant .bubble {
-    background: #f3f4f6;
-    color: #111827;
+    background: #444654;
+    color: #ececf1;
     border-bottom-left-radius: 4px;
 }
 
-/* =========================
-   INPUT AREA
-========================= */
+
+/* INPUT AREA */
 
 .input-area {
-    padding: 20px;
-    border-top: 1px solid #e5e7eb;
-    background: #ffffff;
+    padding: 15px;
+    background: #343541;
+    border-top: 1px solid #2a2b32;
 }
 
 .input-box {
     display: flex;
-    gap: 12px;
-    max-width: 900px;
-    margin: auto;
+    background: #40414f;
+    border-radius: 8px;
+    padding: 5px;
 }
 
-input {
+.input-box input {
     flex: 1;
-    padding: 16px;
-    border-radius: 14px;
-    border: 1px solid #d1d5db;
-    font-size: 16px;
-    outline: none;
-    transition: border 0.2s ease, box-shadow 0.2s ease;
-}
-
-input:focus {
-    border: 1px solid #111827;
-    box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
-}
-
-button.send {
-    padding: 16px 22px;
+    background: transparent;
     border: none;
-    background: #111827;
+    outline: none;
     color: white;
-    border-radius: 14px;
-    cursor: pointer;
+    padding: 10px;
     font-size: 15px;
-    font-weight: 600;
-    transition: all 0.2s ease;
 }
 
-button.send:hover {
-    background: #000;
-    transform: translateY(-1px);
+.input-box input::placeholder {
+    color: #8e8ea0;
 }
 
-/* =========================
-   CODE BLOCKS
-========================= */
+.send {
+    background: #10a37f;
+    border: none;
+    color: white;
+    padding: 10px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.send:hover {
+    background: #0e8f6f;
+}
+
+
+/* CODE BLOCK */
 
 .code-container {
     position: relative;
-    margin-top: 14px;
+    background: #1e1e1e;
+    border-radius: 8px;
+    margin-top: 8px;
 }
 
-pre {
-    background: #0f172a;
-    color: #e5e7eb;
-    padding: 18px;
-    border-radius: 12px;
+.code-container pre {
+    margin: 0;
+    padding: 14px;
     overflow-x: auto;
+    color: #d4d4d4;
+    font-family: Consolas, monospace;
     font-size: 14px;
-    line-height: 1.6;
 }
+
+
+/* COPY BUTTON */
 
 .copy-btn {
     position: absolute;
-    right: 12px;
-    top: 12px;
-    background: #1f2937;
+    top: 6px;
+    right: 6px;
+    background: #10a37f;
     border: none;
     color: white;
-    padding: 6px 12px;
-    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 13px;
-    transition: background 0.15s ease;
 }
 
 .copy-btn:hover {
-    background: #374151;
+    background: #0e8f6f;
 }
 
-/* =========================
-   SCROLLBAR
-========================= */
+
+/* WRITING INDICATOR */
+
+.writing-indicator {
+    color: #8e8ea0;
+    font-style: italic;
+}
+
+.writing-dots::after {
+    content: "...";
+    animation: dots 1.5s infinite;
+}
+
+@keyframes dots {
+    0% { content: "."; }
+    33% { content: ".."; }
+    66% { content: "..."; }
+}
+
+
+/* SCROLLBAR */
 
 ::-webkit-scrollbar {
-    width: 10px;
+    width: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -246,43 +249,108 @@ pre {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 10px;
+    background: #565869;
+    border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
+    background: #6b6c7b;
 }
-/* =========================
-   WRITING INDICATOR
-========================= */
-
-.writing-indicator {
-    display: inline-block;
-    font-style: italic;
-    opacity: 0.7;
-}
-
-.writing-dots::after {
-    content: "";
-    animation: writingDots 1.4s infinite;
+.chat-item {
+    padding: 12px;
+    cursor: pointer;
+    color: #ececf1;
+    border-bottom: 1px solid #2a2b32;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-@keyframes writingDots {
+.chat-title {
+    flex: 1;
+}
 
-    0% { content: ""; }
+.chat-menu-btn {
+    background: transparent;
+    border: none;
+    color: #8e8ea0;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
 
-    25% { content: "."; }
+.chat-menu-btn:hover {
+    background: #2a2b32;
+    color: white;
+}
 
-    50% { content: ".."; }
+.chat-menu {
+    position: fixed;
+    background: #202123;
+    border: 1px solid #3a3b47;
+    border-radius: 8px;
+    overflow: hidden;
+    z-index: 1000;
+    min-width: 140px;
+}
 
-    75% { content: "..."; }
+.chat-menu-item {
+    padding: 10px 14px;
+    cursor: pointer;
+}
 
-    100% { content: ""; }
+.chat-menu-item:hover {
+    background: #2a2b32;
+}
+
+.chat-menu-item.delete {
+    color: #ff6b6b;
+}
+.sidebar-footer {
+    padding: 10px;
+    border-top: 1px solid #2a2b32;
+}
+
+.user-info {
+    padding: 10px;
+    background: #2a2b32;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+}
+
+.user-info:hover {
+    background: #3a3b47;
+}
+
+.user-menu {
+    position: fixed;
+    background: #202123;
+    border: 1px solid #3a3b47;
+    border-radius: 8px;
+    overflow: hidden;
+    z-index: 1000;
+    min-width: 180px;
+}
+
+.user-menu-item {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.user-menu-item:hover {
+    background: #2a2b32;
+}
+
+.user-menu-item.danger {
+    color: #ff6b6b;
 }
 
 
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -294,6 +362,15 @@ pre {
     </div>
 
     <div class="chat-list" id="chatList"></div>
+    <div class="sidebar-footer">
+
+    <div class="user-info" onclick="toggleUserMenu()">
+        <span id="username">User</span>
+        <span>⚙</span>
+    </div>
+
+</div>
+
 
 </div>
 
@@ -476,47 +553,51 @@ async function sendMessage() {
 }
 
 
-async function newChat() {
+function newChat() {
 
-    const res = await fetch("/new_chat", {
-        method: "POST"
-    })
-
-    const data = await res.json()
-
-    currentChat = data.chat_id
+    currentChat = null
 
     document.getElementById("messages").innerHTML = ""
-
-    loadChats()
 }
 
 async function loadChats() {
 
     const res = await fetch("/get_chats")
-
     const chats = await res.json()
 
     const list = document.getElementById("chatList")
-
     list.innerHTML = ""
 
-    for(const id in chats) {
+    for (const id in chats) {
 
         const div = document.createElement("div")
-
         div.className = "chat-item"
 
-        if(id === currentChat)
+        if (id === currentChat)
             div.classList.add("active")
 
-        div.innerText = chats[id].title
+        const title = document.createElement("span")
+        title.className = "chat-title"
+        title.innerText = chats[id].title
 
-        div.onclick = () => loadChat(id)
+        title.onclick = () => loadChat(id)
+
+        const menuBtn = document.createElement("button")
+        menuBtn.className = "chat-menu-btn"
+        menuBtn.innerText = "⋯"
+
+        menuBtn.onclick = (e) => {
+            e.stopPropagation()
+            toggleChatMenu(id, menuBtn)
+        }
+
+        div.appendChild(title)
+        div.appendChild(menuBtn)
 
         list.appendChild(div)
     }
 }
+
 
 async function loadChat(id) {
 
@@ -547,6 +628,141 @@ function copyCode(btn) {
 }
 
 loadChats()
+
+let openMenu = null
+
+function toggleChatMenu(chatId, btn) {
+
+    closeMenu()
+
+    const menu = document.createElement("div")
+    menu.className = "chat-menu"
+
+    menu.innerHTML = `
+        <div class="chat-menu-item" onclick="renameChat('${chatId}')">Rename</div>
+        <div class="chat-menu-item delete" onclick="deleteChat('${chatId}')">Delete</div>
+    `
+
+    document.body.appendChild(menu)
+
+    const rect = btn.getBoundingClientRect()
+
+    menu.style.top = rect.bottom + "px"
+    menu.style.left = rect.left + "px"
+
+    openMenu = menu
+
+    setTimeout(() => {
+        document.addEventListener("click", closeMenuOnce)
+    }, 0)
+}
+
+function closeMenuOnce() {
+    closeMenu()
+    document.removeEventListener("click", closeMenuOnce)
+}
+
+function closeMenu() {
+    if (openMenu) {
+        openMenu.remove()
+        openMenu = null
+    }
+}
+
+async function renameChat(chatId) {
+
+    const newName = prompt("New chat name:")
+
+    if (!newName) return
+
+    await fetch("/rename_chat", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            chat_id: chatId,
+            title: newName
+        })
+    })
+
+    loadChats()
+}
+
+async function deleteChat(chatId) {
+
+    await fetch("/delete_chat", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            chat_id: chatId
+        })
+    })
+
+    if (chatId === currentChat) {
+        currentChat = null
+        document.getElementById("messages").innerHTML = ""
+    }
+
+    loadChats()
+}
+let userMenu = null
+
+function toggleUserMenu() {
+
+    closeUserMenu()
+
+    const menu = document.createElement("div")
+    menu.className = "user-menu"
+
+    menu.innerHTML = `
+        <div class="user-menu-item" onclick="selectUser()">Switch user</div>
+        <div class="user-menu-item" onclick="clearAllChats()">Delete all chats</div>
+        <div class="user-menu-item danger" onclick="logout()">Logout</div>
+    `
+
+    document.body.appendChild(menu)
+
+    const rect = document.querySelector(".user-info").getBoundingClientRect()
+
+    menu.style.bottom = "60px"
+    menu.style.left = rect.left + "px"
+
+    userMenu = menu
+
+    setTimeout(() => {
+        document.addEventListener("click", closeUserMenuOnce)
+    }, 0)
+}
+
+function closeUserMenuOnce() {
+    closeUserMenu()
+    document.removeEventListener("click", closeUserMenuOnce)
+}
+
+function closeUserMenu() {
+
+    if (userMenu) {
+        userMenu.remove()
+        userMenu = null
+    }
+}
+async function clearAllChats() {
+
+    if (!confirm("Delete all chats?")) return
+
+    await fetch("/delete_all_chats", {
+        method: "POST"
+    })
+
+    currentChat = null
+
+    document.getElementById("messages").innerHTML = ""
+
+    loadChats()
+}
+function selectUser() {
+
+    location.href = "/select_user"
+}
 
 </script>
 

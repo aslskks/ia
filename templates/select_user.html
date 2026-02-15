@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Select User</title>
+
+<style>
+
+body {
+    margin:0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto;
+    background:#343541;
+    color:#ececf1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    height:100vh;
+}
+
+.container {
+
+    background:#202123;
+    padding:30px;
+    border-radius:12px;
+    width:350px;
+    box-shadow:0 0 20px rgba(0,0,0,0.5);
+}
+
+h2 {
+    margin-top:0;
+    text-align:center;
+}
+
+.user {
+    padding:12px;
+    margin-top:10px;
+    background:#2a2b32;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.user:hover {
+    background:#3a3b47;
+}
+
+.logout {
+
+    margin-top:20px;
+    padding:10px;
+    width:100%;
+    border:none;
+    background:#ff4b4b;
+    color:white;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.logout:hover {
+    background:#ff2f2f;
+}
+
+.new-user {
+
+    margin-top:15px;
+    display:flex;
+}
+
+.new-user input {
+
+    flex:1;
+    padding:10px;
+    border:none;
+    border-radius:6px 0 0 6px;
+    background:#40414f;
+    color:white;
+}
+
+.new-user button {
+
+    padding:10px;
+    border:none;
+    background:#10a37f;
+    color:white;
+    border-radius:0 6px 6px 0;
+    cursor:pointer;
+}
+
+.new-user button:hover {
+    background:#0e8f6f;
+}
+
+.delete-all {
+
+    margin-top:10px;
+    padding:10px;
+    width:100%;
+    border:none;
+    background:#565869;
+    color:white;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.delete-all:hover {
+    background:#6b6c7b;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Select User</h2>
+
+<div id="users"></div>
+
+<div class="new-user">
+
+<input id="newUser" placeholder="New user">
+
+<button onclick="createUser()">Create</button>
+
+</div>
+
+<button class="delete-all" onclick="deleteAllMessages()">
+Delete All Messages
+</button>
+
+<button class="logout" onclick="logout()">
+Logout
+</button>
+
+</div>
+
+<script>
+
+async function loadUsers() {
+
+    const res = await fetch("/get_users")
+
+    const users = await res.json()
+
+    const container = document.getElementById("users")
+
+    container.innerHTML = ""
+
+    users.forEach(user => {
+
+        const div = document.createElement("div")
+
+        div.className = "user"
+
+        div.innerText = user
+
+        div.onclick = () => selectUser(user)
+
+        container.appendChild(div)
+    })
+}
+
+async function selectUser(username) {
+
+    await fetch("/select_user", {
+
+        method:"POST",
+
+        headers:{
+            "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+
+            username:username
+        })
+
+    })
+
+    location.href="/"
+}
+
+async function createUser() {
+
+    const username = document.getElementById("newUser").value
+
+    if(!username) return
+
+    await fetch("/create_user", {
+
+        method:"POST",
+
+        headers:{
+            "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+
+            username:username
+        })
+
+    })
+
+    loadUsers()
+}
+
+async function deleteAllMessages() {
+
+    if(!confirm("Delete ALL messages?")) return
+
+    await fetch("/delete_all_messages", {
+
+        method:"POST"
+    })
+
+    alert("All messages deleted")
+    location.href="/"
+}
+
+async function logout() {
+
+    await fetch("/logout", {
+
+        method:"POST"
+    })
+
+    location.href="/login"
+}
+
+loadUsers()
+
+</script>
+
+</body>
+</html>

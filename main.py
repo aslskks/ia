@@ -1,14 +1,24 @@
-from flask import Flask, request, session, render_template, jsonify, Response, copy_current_request_context
+from flask import Flask, request, session, render_template, Response, copy_current_request_context, redirect, url_for, jsonify
 import json
 import ollama
 import secrets
 import os
 import uuid
 import mysql.connector as mysql
+from flask_wtf import CSRFProtect
+from passlib.hash import argon2
+import requests
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
-
-
+csrf = CSRFProtect(app)
+SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY_V2 = os.getenv("SECRET_KEY_V2")
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SECURE"] = False  # True en producción
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+client = ollama.Client(
+    host="http://127.0.0.1:11434"
+)
 SYSTEM_PROMPT = """
 You are a highly reliable, expert-level AI assistant running locally.
 
@@ -166,22 +176,65 @@ write ```
 Correct response:
 ``
 """
+def open_conn():
+    conn = mysql.connect(host="localhost", user="root", password="hola", database="chat")
+    return conn, conn.cursor()
+conn, cursor = open_conn()
+cursor.execute("""CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user VARCHAR(50) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+""")
+cursor.execute("""CREATE TABLE IF NOT EXISTS chats (
+    id CHAR(36) PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(255) DEFAULT 'New Chat',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+""")
+cursor.execute("""CREATE TABLE IF NOT EXISTS messages (
+
+    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    chat_id CHAR(36) NOT NULL,
+
+    role ENUM('user','assistant') NOT NULL,
+
+    content TEXT NOT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
+
+);
+""")
+conn.commit()
+cursor.close()
+conn.close()
 
 @app.route("/new_chat", methods=["POST"])
+@csrf.exempt
 def new_chat():
+
     chat_id = str(uuid.uuid4())
 
-    if "chats" not in session:
-        session["chats"] = {}
+    conn, cursor = open_conn()
 
-    session["chats"][chat_id] = {
-        "title": "New Chat",
-        "messages": []
-    }
-    session["current_chat"] = chat_id
+    cursor.execute(
+        "INSERT INTO chats (id, user_id, title) VALUES (%s, %s, %s)",
+        (chat_id, session["user_id"], "New Chat")
+    )
 
+    conn.commit()
+    cursor.close()
+    conn.close()
     return {"chat_id": chat_id}
+
 def generate_chat_title(first_message):
+
     TITLE_PROMPT = f"""
 Generate a very short title (3–6 words max) for this conversation.
 
@@ -195,7 +248,7 @@ User message:
 {first_message}
 """
 
-    response = ollama.chat(
+    response = client.chat(
         model="llama3.2",
         messages=[
             {"role": "system", "content": "You generate short chat titles."},
@@ -206,6 +259,7 @@ User message:
     title = response["message"]["content"].strip()
 
     return title
+
 
 def chat_with_ollama(messages):
 
@@ -218,50 +272,173 @@ def chat_with_ollama(messages):
 
 
 @app.route("/")
+@csrf.exempt
 def index():
-
+    if "user" not in session:
+        return redirect(url_for("login"))
     if "messages" not in session:
         session["messages"] = []
-
     return render_template("chat.html")
+
+@app.route("/select_user")
+def select_user_page():
+    return render_template("select_user.html")
+
+
+@app.route("/get_users")
+def get_users():
+    db = mysql.connect(host="localhost", user="root", password="hola", database="chat")
+
+    cursor = db.cursor()
+
+    cursor.execute("SELECT user FROM users")
+
+    users = [u[0] for u in cursor.fetchall()]
+
+    return jsonify(users)
+
+
+
+@app.route("/select_user", methods=["POST"])
+def select_user_post():
+
+    username = request.json["username"]
+
+    session["user"] = username
+
+    return "ok"
+def create_chat(user_id):
+    db = mysql.connect(host="localhost", user="root", password="hola", database="chat")
+    chat_id = str(uuid.uuid4())
+
+    cursor = db.cursor()
+
+    cursor.execute(
+        "INSERT INTO chats (id, user_id, title) VALUES (%s,%s,'New Chat')",
+        (chat_id, user_id)
+    )
+
+    db.commit()
+
+    return chat_id
+
+
+@app.route("/create_user", methods=["POST"])
+def create_user():
+    db = mysql.connect(host="localhost", user="root", password="hola", database="chat")
+
+    username = request.json["username"]
+
+    cursor = db.cursor()
+
+    cursor.execute(
+        "INSERT IGNORE INTO users(user) VALUES(%s)",
+        (username,)
+    )
+
+    db.commit()
+
+    return "ok"
+
+
+@app.route("/delete_all_messages", methods=["POST"])
+def delete_all_messages():
+
+    username = session["user"]
+    db = mysql.connect(host="localhost", user="root", password="hola", database="chat")
+    cursor = db.cursor()
+    user_id = session.get("user_id")
+
+    cursor.execute(
+        """
+        DELETE m FROM messages m
+        JOIN chats c ON m.chat_id = c.id
+        WHERE c.user_id=%s
+        """,
+        (user_id,)
+    )
+
+    cursor.execute(
+        "DELETE FROM chats WHERE user=%s",
+        (username,)
+    )
+
+    db.commit()
+
+    return "ok"
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+
+    session.clear()
+
+    return "ok"
+
 
 
 @app.route("/chat", methods=["POST"])
+@csrf.exempt
 def chat():
 
-    data = request.json
+    if "user_id" not in session:
+        return {"error": "Not logged in"}, 401
 
-    user_message = data["message"]
+    data = request.json
+    user_message = data.get("message", "").strip()
     chat_id = data.get("chat_id")
 
-    if "chats" not in session:
-        session["chats"] = {}
+    if not user_message:
+        return {"error": "empty message"}, 400
 
-    chats = session["chats"]
+    db = mysql.connect(
+        host="localhost",
+        user="root",
+        password="hola",
+        database="chat"
+    )
 
-    if not chat_id or chat_id not in chats:
+    cursor = db.cursor(dictionary=True)
+
+    # crear chat si no existe
+    if not chat_id:
 
         chat_id = str(uuid.uuid4())
 
-        chats[chat_id] = {
-            "title": "New Chat",
-            "messages": []
-        }
+        cursor.execute(
+            """
+            INSERT INTO chats (id, user_id, title)
+            VALUES (%s,%s,'New Chat')
+            """,
+            (chat_id, session["user_id"])
+        )
 
-        session["current_chat"] = chat_id
+        db.commit()
 
-    messages = chats[chat_id]["messages"]
+    # guardar mensaje usuario
+    cursor.execute(
+        """
+        INSERT INTO messages (chat_id, role, content)
+        VALUES (%s,'user',%s)
+        """,
+        (chat_id, user_message)
+    )
 
-    messages.append({
-        "role": "user",
-        "content": user_message
-    })
+    db.commit()
 
-    session["chats"] = chats
-    session.modified = True
+    # obtener historial
+    cursor.execute(
+        """
+        SELECT role, content
+        FROM messages
+        WHERE chat_id=%s
+        ORDER BY id
+        """,
+        (chat_id,)
+    )
 
+    messages = cursor.fetchall()
 
-    # ✅ IMPORTANTE: DENTRO de chat()
     @copy_current_request_context
     def generate():
 
@@ -269,19 +446,13 @@ def chat():
 
         stream = ollama.chat(
             model="llama3.2",
-            messages=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
+            messages=[{"role":"system","content":SYSTEM_PROMPT}] + messages,
             stream=True
         )
 
         for chunk in stream:
 
-            if "message" not in chunk:
-                continue
-
             token = chunk["message"]["content"]
-
-            if not token:
-                continue
 
             full_reply += token
 
@@ -290,55 +461,345 @@ def chat():
                 "chat_id": chat_id
             }) + "\n"
 
-        messages.append({
-            "role": "assistant",
-            "content": full_reply
-        })
+        conn2, cursor2 = open_conn()
 
-        if chats[chat_id]["title"] == "New Chat":
-            chats[chat_id]["title"] = generate_chat_title(user_message)
+        cursor2.execute(
+            """
+            INSERT INTO messages (chat_id, role, content)
+            VALUES (%s,'assistant',%s)
+            """,
+            (chat_id, full_reply)
+        )
 
-        session["chats"] = chats
-        session.modified = True
+        cursor2.execute(
+            "SELECT title FROM chats WHERE id=%s",
+            (chat_id,)
+        )
 
-    return Response(
-        generate(),
-        mimetype="text/plain",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no"
+        title = cursor2.fetchone()[0]
+
+        if title == "New Chat":
+
+            new_title = generate_chat_title(user_message)
+
+            cursor2.execute(
+                "UPDATE chats SET title=%s WHERE id=%s",
+                (new_title, chat_id)
+            )
+
+        conn2.commit()
+
+    return Response(generate(), mimetype="text/plain")
+
+
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+
+    if request.method == "GET":
+
+        if "user" in session:
+            return redirect(url_for("index"))
+
+        return render_template("index.html")
+
+
+    # POST
+    # =====================
+    # VALIDAR reCAPTCHA v3
+    # =====================
+
+    token_v3 = request.form.get("recaptcha_v3")
+
+    if not token_v3:
+        return render_template(
+            "index.html",
+            error="Captcha requerido",
+            show_captcha_v2=True
+        )
+
+    verify_v3 = requests.post(
+        "https://www.google.com/recaptcha/api/siteverify",
+        data={
+            "secret": SECRET_KEY,
+            "response": token_v3,
+            "remoteip": request.remote_addr
         }
+    ).json()
+
+    # FALLÓ completamente
+    if not verify_v3.get("success"):
+        return render_template(
+            "index.html",
+            error="Captcha inválido",
+            show_captcha_v2=True
+        )
+
+    score = verify_v3.get("score", 0)
+
+    # =====================
+    # SCORE BAJO → FORZAR v2
+    # =====================
+
+    if score < 0.5:
+
+        token_v2 = request.form.get("g-recaptcha-response")
+
+        if not token_v2:
+            return render_template(
+                "index.html",
+                error="Confirma que no eres un robot",
+                show_captcha_v2=True
+            )
+
+        verify_v2 = requests.post(
+            "https://www.google.com/recaptcha/api/siteverify",
+            data={
+                "secret": SECRET_KEY_V2,
+                "response": token_v2,
+                "remoteip": request.remote_addr
+            }
+        ).json()
+
+        if not verify_v2.get("success"):
+            return render_template(
+                "index.html",
+                error="Captcha incorrecto",
+                show_captcha_v2=True
+            )
+
+
+    # login
+    conn, cursor = open_conn()
+
+    user = request.form.get("user")
+    password = request.form.get("password")
+    remember = request.form.get("remember")
+
+    cursor.execute(
+        "SELECT password_hash, id FROM users WHERE user=%s",
+        (user,)
+    )
+    result = cursor.fetchone()
+
+    if not result:
+        return render_template("index.html", error="Invalid credentials")
+    password_hash, id = result
+    if argon2.verify(password, password_hash):
+        session["user_id"] = id
+        session["user"] = user
+        if remember:
+            session.permanent = True
+
+        return redirect(url_for("index"))
+
+    return render_template("index.html", error="Invalid credentials")
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    message = request.args.get("message")
+
+    if request.method == "GET":
+        if "user" in session:
+            return redirect(url_for("dashboard"))
+        return render_template("index.html", message=message)
+
+    conn, cursor = open_conn()
+
+    user = request.form.get("user")
+    password = request.form.get("password")
+
+    cursor.execute("SELECT 1 FROM users WHERE user = %s", (user,))
+    if cursor.fetchone():
+        return render_template("index.html", error="Username already exists")
+    # =====================
+    # VALIDAR reCAPTCHA v3
+    # =====================
+
+    token_v3 = request.form.get("recaptcha_v3")
+
+    if not token_v3:
+        return render_template(
+            "index.html",
+            error="Captcha requerido",
+            show_captcha_v2=True
+        )
+
+    verify_v3 = requests.post(
+        "https://www.google.com/recaptcha/api/siteverify",
+        data={
+            "secret": SECRET_KEY,
+            "response": token_v3,
+            "remoteip": request.remote_addr
+        }
+    ).json()
+
+    # FALLÓ completamente
+    if not verify_v3.get("success"):
+        return render_template(
+            "index.html",
+            error="Captcha inválido",
+            show_captcha_v2=True
+        )
+
+    score = verify_v3.get("score", 0)
+
+    # =====================
+    # SCORE BAJO → FORZAR v2
+    # =====================
+
+    if score < 0.5:
+
+        token_v2 = request.form.get("g-recaptcha-response")
+
+        if not token_v2:
+            return render_template(
+                "index.html",
+                error="Confirma que no eres un robot",
+                show_captcha_v2=True
+            )
+
+        verify_v2 = requests.post(
+            "https://www.google.com/recaptcha/api/siteverify",
+            data={
+                "secret": SECRET_KEY_V2,
+                "response": token_v2,
+                "remoteip": request.remote_addr
+            }
+        ).json()
+
+        if not verify_v2.get("success"):
+            return render_template(
+                "index.html",
+                error="Captcha incorrecto",
+                show_captcha_v2=True
+            )
+
+    # =====================
+    # Crear usuario
+    # =====================
+    password_hash = argon2.hash(password)
+    cursor.execute(
+        "INSERT INTO users (user, password_hash) VALUES (%s, %s)",
+        (user, password_hash)
     )
 
+    conn.commit()
+    cursor.close()
+    conn.close()
 
+    return redirect(url_for("index"))
+@app.route("/delete_chat", methods=["POST"])
+@csrf.exempt
+def delete_chat():
 
+    data = request.json
+    db = mysql.connect(host='localhost', user="root", password="hola", database="chat")
+    cursor = db.cursor()
+
+    cursor.execute(
+        "DELETE FROM chats WHERE id=%s",
+        (data["chat_id"],)
+    )
+
+    db.commit()
+
+    return {"status":"ok"}
+
+@app.route("/rename_chat", methods=["POST"])
+@csrf.exempt
+def rename_chat():
+
+    data = request.json
+    db = mysql.connect(host='localhost', user="root", password="hola", database="chat")
+    cursor = db.cursor()
+
+    cursor.execute(
+        "UPDATE chats SET title=%s WHERE id=%s",
+        (data["title"], data["chat_id"])
+    )
+
+    db.commit()
+
+    return {"status":"ok"}
+def save_message(chat_id, role, content):
+    db = mysql.connect(host="localhost", user="root", password="hola", database="chat")
+
+    cursor = db.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO messages (chat_id, role, content)
+        VALUES (%s,%s,%s)
+        """,
+        (chat_id, role, content)
+    )
+
+    db.commit()
 
 @app.route("/get_chats")
 def get_chats():
+    db = mysql.connect(host="localhost", user="root", password="hola", database="chat")
 
-    if "chats" not in session:
-        return {}
+    user_id = session["user_id"]
 
-    return session["chats"]
-@app.route("/load_chat/<chat_id>")
-def load_chat(chat_id):
+    cursor = db.cursor(dictionary=True)
 
-    chats = session.get("chats", {})
+    cursor.execute(
+        """
+        SELECT id, title
+        FROM chats
+        WHERE user_id=%s
+        ORDER BY created_at DESC
+        """,
+        (user_id,)
+    )
 
-    if chat_id not in chats:
-        return {"messages": []}
+    chats = cursor.fetchall()
 
     return {
-        "messages": chats[chat_id]["messages"]
+        chat["id"]: {
+            "title": chat["title"]
+        }
+        for chat in chats
+    }
+
+@app.route("/load_chat/<chat_id>")
+def load_chat(chat_id):
+    db = mysql.connect(host="localhost", user="root", password="hola", database="chat")
+
+    user_id = session["user_id"]
+
+    cursor = db.cursor(dictionary=True)
+
+    cursor.execute(
+        """
+        SELECT id FROM chats
+        WHERE id=%s AND user_id=%s
+        """,
+        (chat_id, user_id)
+    )
+
+    if not cursor.fetchone():
+        return {"error":"Unauthorized"}, 403
+
+
+    cursor.execute(
+        """
+        SELECT role, content
+        FROM messages
+        WHERE chat_id=%s
+        ORDER BY id
+        """,
+        (chat_id,)
+    )
+
+    return {
+        "messages": cursor.fetchall()
     }
 
 
-@app.route("/reset")
-def reset():
-
-    session.clear()
-    return jsonify({"status": "reset"})
-
-
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True,)
+

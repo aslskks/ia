@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login & Register</title>
+    <link rel="stylesheet" href="../static/style.css">
+<script src="https://www.google.com/recaptcha/api.js?render=6LfmLmQsAAAAAGMZzFEhv26tJb30lUuyK3yxuG9R"></script>
+
+    <style>
+        /* Ocultar ojo cerrado inicialmente */
+        .eye-closed { display: none; cursor: pointer; }
+        .eye-open { cursor: pointer; }
+    </style>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon">
+</head>
+
+<body>
+  <div class="wrapper">
+    <!-- LOGIN -->
+    <div class="form-wrapper sign-in">
+      <form action="/login" method="POST" id="login-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="recaptcha_v3" class="recaptcha_v3">
+        <input type="hidden" name="fingerprint" id="fingerprint">
+
+
+        <h2>Login</h2>
+
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+        {% if message %}
+        <div class="success-message">{{ message }}</div>
+        {% endif %}
+
+        <div class="input-group">
+          <input type="text" required name="user">
+          <label>Username</label>
+        </div>
+
+        <div class="input-group">
+          <input type="password" id="login-password" name="password" required>
+          <label>Password</label>
+          <span class="toggle-eye" id="login-togglePassword">
+            <!-- ojo abierto -->
+            <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3" fill="#0ef"/> <!-- iris -->
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#0ef" stroke-width="2" fill="none"/>
+            </svg>
+
+            <!-- ojo cerrado -->
+            <svg class="eye-closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3" fill="#0ef"/> <!-- iris -->
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#0ef" stroke-width="2" fill="none"/>
+              <line x1="0" y1="0" x2="24" y2="24" stroke="#0ef" stroke-width="2"/>
+            </svg>
+          </span>
+        </div>
+
+        <div class="remember">
+          <label><input type="checkbox"> Remember me</label>
+        </div>
+
+{% if show_captcha_v2 %}
+<div class="input-group captcha-container">
+    <div id="recaptcha-login"></div>
+</div>
+{% endif %}
+
+
+
+        <button type="submit">Login</button>
+
+        <div class="forgot">
+          <p><a href="forgot" class="forgot">Forgot your password?</a></p>
+        </div>
+
+        <div class="signUp-link">
+          <p>Don't have an account? <a href="#" class="signUpBtn-link">Sign Up</a></p>
+        </div>
+      </form>
+    </div>
+
+    <!-- REGISTER -->
+    <div class="form-wrapper sign-up">
+      <form action="/register" method="POST" id="register-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="recaptcha_v3" class="recaptcha_v3">
+
+        <h2>Sign Up</h2>
+
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+
+        <div class="input-group">
+          <input type="text" required name="user">
+          <label>Username</label>
+        </div>
+
+
+        <div class="input-group">
+          <input type="password" id="register-password" name="password" required>
+          <label>Password</label>
+          <span class="toggle-eye" id="register-togglePassword">
+            <!-- ojo abierto -->
+            <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3" fill="#0ef"/>
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#0ef" stroke-width="2" fill="none"/>
+            </svg>
+
+            <!-- ojo cerrado -->
+            <svg class="eye-closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3" fill="#0ef"/>
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#0ef" stroke-width="2" fill="none"/>
+              <line x1="0" y1="0" x2="24" y2="24" stroke="#0ef" stroke-width="2"/>
+            </svg>
+          </span>
+        </div>
+
+        <div class="remember">
+          <label><input type="checkbox" name="remember" required> I agree to the terms & conditions</label>
+        </div>
+
+{% if show_captcha_v2 %}
+<div class="input-group captcha-container">
+    <div id="recaptcha-register"></div>
+</div>
+{% endif %}
+
+
+        <button type="submit">Sign Up</button>
+
+        <div class="signUp-link">
+          <p>Already have an account? <a href="#" class="signInBtn-link">Sign In</a></p>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JS -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+  // toggle forms
+  const signInBtnLink = document.querySelector('.signInBtn-link');
+  const signUpBtnLink = document.querySelector('.signUpBtn-link');
+  const wrapper = document.querySelector('.wrapper');
+
+  signUpBtnLink.addEventListener('click', (e) => { e.preventDefault(); wrapper.classList.add('active'); });
+  signInBtnLink.addEventListener('click', (e) => { e.preventDefault(); wrapper.classList.remove('active'); });
+
+  // toggle password
+  function setupToggleEye(passwordId, toggleId) {
+    const password = document.getElementById(passwordId);
+    const toggle = document.getElementById(toggleId);
+    const eyeOpen = toggle.querySelector('.eye-open');
+    const eyeClosed = toggle.querySelector('.eye-closed');
+
+    toggle.addEventListener('click', () => {
+      if(password.type === "password") {
+        password.type = "text";
+        eyeOpen.style.display = "none";
+        eyeClosed.style.display = "block";
+      } else {
+        password.type = "password";
+        eyeOpen.style.display = "block";
+        eyeClosed.style.display = "none";
+      }
+    });
+  }
+
+  setupToggleEye('login-password', 'login-togglePassword');
+  setupToggleEye('register-password', 'register-togglePassword');
+
+});
+</script>
+<script>
+const SITE_KEY_V3 = "6LfmLmQsAAAAAGMZzFEhv26tJb30lUuyK3yxuG9R";
+
+function attachV3(formId, action) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+
+  form.addEventListener("submit", function(e) {
+
+
+    e.preventDefault();
+
+    grecaptcha.ready(function () {
+      grecaptcha.execute(SITE_KEY_V3, { action }).then(function(token) {
+        form.querySelector('[name="recaptcha_v3"]').value = token;
+        form.submit();
+      });
+    });
+
+  });
+}
+
+attachV3("login-form", "login");
+attachV3("register-form", "register");
+</script>
+
+<script>
+function renderV2IfNeeded() {
+
+  const login = document.getElementById("recaptcha-v2-login");
+  const register = document.getElementById("recaptcha-v2-register");
+
+  if (login) {
+    grecaptcha.render(login, {
+      sitekey: "6Ld642MsAAAAAADiwhk9IFs-WmOyvLT3DzPHp_3I",
+      theme: "dark"
+    });
+  }
+
+  if (register) {
+    grecaptcha.render(register, {
+      sitekey: "6Ld642MsAAAAAADiwhk9IFs-WmOyvLT3DzPHp_3I",
+      theme: "dark"
+    });
+  }
+
+}
+
+window.onload = renderV2IfNeeded;
+</script>
+<script>
+let captchaLoginRendered = false;
+let captchaRegisterRendered = false;
+
+function renderCaptchaLogin() {
+    if (captchaLoginRendered) return;
+    const el = document.getElementById("recaptcha-login");
+    if (!el) return;
+
+    grecaptcha.render(el, {
+        sitekey: "6Ld642MsAAAAAADiwhk9IFs-WmOyvLT3DzPHp_3I"
+    });
+
+    captchaLoginRendered = true;
+}
+
+function renderCaptchaRegister() {
+    if (captchaRegisterRendered) return;
+    const el = document.getElementById("recaptcha-register");
+    if (!el) return;
+
+    grecaptcha.render(el, {
+        sitekey: "6Ld642MsAAAAAADiwhk9IFs-WmOyvLT3DzPHp_3I"
+    });
+
+    captchaRegisterRendered = true;
+}
+
+grecaptcha.ready(function() {
+    renderCaptchaLogin();
+});
+
+document.querySelector('.signUpBtn-link').addEventListener('click', function() {
+    setTimeout(renderCaptchaRegister, 300);
+});
+</script>
+
+
+</body>
+</html>
