@@ -1,9 +1,10 @@
-from flask import Flask, request, session, render_template, jsonify, Response
+from flask import Flask, request, session, render_template, jsonify, Response, copy_current_request_context
 import json
 import ollama
 import secrets
 import os
 import uuid
+import mysql.connector as mysql
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
 
@@ -168,7 +169,6 @@ Correct response:
 
 @app.route("/new_chat", methods=["POST"])
 def new_chat():
-
     chat_id = str(uuid.uuid4())
 
     if "chats" not in session:
@@ -178,7 +178,6 @@ def new_chat():
         "title": "New Chat",
         "messages": []
     }
-
     session["current_chat"] = chat_id
 
     return {"chat_id": chat_id}
@@ -253,7 +252,6 @@ def chat():
 
     messages = chats[chat_id]["messages"]
 
-    # save user message immediately
     messages.append({
         "role": "user",
         "content": user_message
@@ -262,8 +260,10 @@ def chat():
     session["chats"] = chats
     session.modified = True
 
-    # PASS messages and chats INTO generator
-    def generate(messages, chats, chat_id, user_message):
+
+    # ✅ IMPORTANTE: DENTRO de chat()
+    @copy_current_request_context
+    def generate():
 
         full_reply = ""
 
@@ -290,13 +290,11 @@ def chat():
                 "chat_id": chat_id
             }) + "\n"
 
-        # save assistant reply
         messages.append({
             "role": "assistant",
             "content": full_reply
         })
 
-        # generate title
         if chats[chat_id]["title"] == "New Chat":
             chats[chat_id]["title"] = generate_chat_title(user_message)
 
@@ -304,13 +302,14 @@ def chat():
         session.modified = True
 
     return Response(
-        generate(messages, chats, chat_id, user_message),
+        generate(),
         mimetype="text/plain",
         headers={
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no"
         }
     )
+
 
 
 
