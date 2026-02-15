@@ -1,4 +1,4 @@
-# ia
+# ia assistant
 first install ollama
 for windows
 ```powershell
