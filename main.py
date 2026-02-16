@@ -236,7 +236,6 @@ conn.commit()
 cursor.close()
 conn.close()
 @app.route("/me")
-@app.route("/me")
 def me():
 
     if "user_id" not in session:
@@ -247,8 +246,14 @@ def me():
         "SELECT user, email FROM users WHERE id=%s",
         (session["user_id"],)
     )
-    user, email = cursor.fetchone()
-    return jsonify(user, email)
+    row = cursor.fetchone()
+
+    return jsonify({
+        "name": row[0],
+        "email": row[1],
+        "avatar": ""
+    })
+
 @app.route("/reset/<code>", methods=["GET", "POST"])
 def reset(code):
     conn, cursor = open_conn()
@@ -553,6 +558,35 @@ def forgot():
 
     return render_template("forgot.html", message="If the email exists, instructions were sent")
 
+@app.route("/messages/<chat_id>")
+def get_messages(chat_id):
+
+    if "user_id" not in session:
+        return {"error": "unauthorized"}, 401
+
+    conn = mysql.connect(
+        host="localhost",
+        user="root",
+        password="hola",
+        database="chat"
+    )
+
+    cursor = conn.cursor(dictionary=True)  # 🔥 ESTA LINEA ES LA CLAVE
+
+    cursor.execute("""
+        SELECT role, content
+        FROM messages
+        WHERE chat_id=%s
+        ORDER BY id
+    """, (chat_id,))
+
+    rows = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify(rows)
+
 
 
 @app.route("/chat", methods=["POST"])
@@ -616,56 +650,99 @@ def chat():
     )
 
     messages = cursor.fetchall()
-
+    conn.commit()
+    cursor.close()
+    conn.close()
     @copy_current_request_context
     def generate():
 
         full_reply = ""
 
-        stream = ollama.chat(
-            model="llama3.2",
-            messages=[{"role":"system","content":SYSTEM_PROMPT}] + messages,
-            stream=True
-        )
+        try:
 
-        for chunk in stream:
-
-            token = chunk["message"]["content"]
-
-            full_reply += token
-
-            yield json.dumps({
-                "token": token,
-                "chat_id": chat_id
-            }) + "\n"
-
-        conn2, cursor2 = open_conn()
-
-        cursor2.execute(
-            """
-            INSERT INTO messages (chat_id, role, content)
-            VALUES (%s,'assistant',%s)
-            """,
-            (chat_id, full_reply)
-        )
-
-        cursor2.execute(
-            "SELECT title FROM chats WHERE id=%s",
-            (chat_id,)
-        )
-
-        title = cursor2.fetchone()[0]
-
-        if title == "New Chat":
-
-            new_title = generate_chat_title(user_message)
-
-            cursor2.execute(
-                "UPDATE chats SET title=%s WHERE id=%s",
-                (new_title, chat_id)
+            stream = ollama.chat(
+                model="llama3.2",
+                messages=[{"role":"system","content":SYSTEM_PROMPT}] + messages,
+                stream=True
             )
 
-        conn2.commit()
+            for chunk in stream:
+
+                token = chunk["message"]["content"]
+
+                if not token:
+                    continue
+
+                full_reply += token
+
+                yield json.dumps({
+                    "token": token,
+                    "chat_id": chat_id
+                }) + "\n"
+
+        except Exception as e:
+
+            print("STREAM ERROR:", e)
+
+        # 🔥 GUARDAR FUERA DEL TRY
+        # 🔥 GUARDAR RESPUESTA DEL ASSISTANT
+        print("FINAL REPLY:", full_reply)
+
+        if full_reply.strip():
+
+            conn2, cursor2 = open_conn()
+
+            # guardar respuesta
+            cursor2.execute(
+                """
+                INSERT INTO messages (chat_id, role, content)
+                VALUES (%s,'assistant',%s)
+                """,
+                (chat_id, full_reply)
+            )
+
+            conn2.commit()
+
+            print("Assistant saved")
+
+            # =========================
+            # AUTO GENERAR TITULO
+            # =========================
+
+            cursor2.execute(
+                "SELECT title FROM chats WHERE id=%s",
+                (chat_id,)
+            )
+
+            current_title = cursor2.fetchone()[0]
+
+            # solo si es nuevo
+            if current_title == "New Chat":
+
+                try:
+
+                    new_title = generate_chat_title(user_message)
+
+                    cursor2.execute(
+                        "UPDATE chats SET title=%s WHERE id=%s",
+                        (new_title, chat_id)
+                    )
+
+                    conn2.commit()
+
+                    print("Title updated:", new_title)
+
+                except Exception as e:
+
+                    print("TITLE ERROR:", e)
+
+            cursor2.close()
+            conn2.close()
+
+
+
+
+
 
     return Response(generate(), mimetype="text/plain")
 

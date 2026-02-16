@@ -1,0 +1,685 @@
+/* =========================
+   RESET
+========================= */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Arial, sans-serif;
+    background: #343541;
+    color: #ececf1;
+}
+
+
+/* =========================
+   VARIABLES
+========================= */
+
+:root {
+    --sidebar: #202123;
+    --main: #343541;
+    --user: #0b93f6;
+    --assistant: #444654;
+    --border: #4d4d4f;
+    --hover: #2a2b32;
+    --text-secondary: #a1a1aa;
+}
+
+
+/* =========================
+   LAYOUT
+========================= */
+
+body {
+    display: flex;
+}
+
+
+/* =========================
+   SIDEBAR
+========================= */
+
+.sidebar {
+    width: 260px;
+    background: var(--sidebar);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+}
+
+.new-chat {
+    margin: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.new-chat:hover {
+    background: var(--hover);
+}
+
+.chat-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.chat-item {
+    padding: 12px;
+    cursor: pointer;
+    border-radius: 6px;
+    margin: 4px 8px;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.chat-item:hover {
+    background: var(--hover);
+}
+
+.chat-item.active {
+    background: #343541;
+}
+
+
+/* =========================
+   USER CARD
+========================= */
+
+.sidebar-footer {
+    padding: 10px;
+    border-top: 1px solid var(--border);
+}
+
+.user-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.user-card:hover {
+    background: var(--hover);
+}
+
+.user-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #0b93f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    position: relative;
+    overflow: hidden;
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-size: 14px;
+}
+
+.user-email {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+
+/* =========================
+   MAIN
+========================= */
+
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+
+/* =========================
+   MESSAGES
+========================= */
+
+.messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+
+/* message row */
+
+.message {
+    display: flex;
+    margin-bottom: 18px;
+    animation: fadeIn 0.2s ease;
+}
+
+.message.user {
+    justify-content: flex-end;
+}
+
+.message.assistant {
+    justify-content: flex-start;
+}
+
+
+/* bubble */
+
+.bubble {
+    max-width: 65%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    line-height: 1.5;
+    font-size: 15px;
+    word-wrap: break-word;
+}
+
+.user .bubble {
+    background: var(--user);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.assistant .bubble {
+    background: var(--assistant);
+    border-bottom-left-radius: 4px;
+}
+
+
+/* avatar */
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin: 0 10px;
+    background: #10a37f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user .avatar {
+    order: 2;
+    background: #0b93f6;
+}
+
+.assistant .avatar {
+    order: 0;
+    background: #10a37f;
+}
+
+
+/* =========================
+   INPUT AREA
+========================= */
+
+.input-area {
+    border-top: 1px solid var(--border);
+    padding: 16px;
+}
+
+.input-box {
+    display: flex;
+    align-items: center;
+    background: #40414f;
+    border-radius: 12px;
+    padding: 8px;
+}
+
+textarea {
+    flex: 1;
+    resize: none;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: white;
+    font-size: 15px;
+    padding: 8px;
+    max-height: 200px;
+}
+
+textarea::placeholder {
+    color: #8e8ea0;
+}
+
+.send {
+    background: #10a37f;
+    border: none;
+    color: white;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.send:hover {
+    background: #0e8c6d;
+}
+
+
+/* =========================
+   SCROLLBAR
+========================= */
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #565869;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #6b6c7b;
+}
+
+
+/* =========================
+   ANIMATION
+========================= */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 800px) {
+
+    .sidebar {
+        display: none;
+    }
+
+    .bubble {
+        max-width: 85%;
+    }
+
+}
+/* =========================
+   CODE BLOCKS
+========================= */
+
+/* bloque de código */
+
+pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 14px;
+    border-radius: 10px;
+    overflow-x: auto;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+    border: 1px solid #333;
+}
+
+/* código dentro del bloque */
+
+pre code {
+    background: transparent;
+    padding: 0;
+    color: inherit;
+    font-family: Consolas, Monaco, "Courier New", monospace;
+}
+
+
+/* código inline */
+
+code {
+    background: #2d2d2d;
+    padding: 3px 6px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: Consolas, Monaco, "Courier New", monospace;
+    color: #e6e6e6;
+}
+
+
+/* bloque dentro de burbuja */
+
+.bubble pre {
+    background: #1e1e1e;
+}
+
+
+/* scrollbar dentro de code */
+
+pre::-webkit-scrollbar {
+    height: 6px;
+}
+
+pre::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+}
+
+pre::-webkit-scrollbar-thumb:hover {
+    background: #777;
+}
+
+/* =========================
+   CHAT ITEM WITH MENU
+========================= */
+
+.chat-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-radius: 8px;
+    margin: 4px 8px;
+    font-size: 14px;
+    transition: 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+}
+
+.chat-item:hover {
+    background: var(--hover);
+}
+
+.chat-item.active {
+    background: #343541;
+}
+
+/* titulo */
+
+.chat-item div:first-child {
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+
+/* =========================
+   THREE DOT BUTTON
+========================= */
+
+.chat-menu-btn {
+
+    width: 28px;
+    height: 28px;
+
+    border-radius: 6px;
+
+    border: none;
+
+    background: transparent;
+
+    color: #a1a1aa;
+
+    font-size: 18px;
+
+    cursor: pointer;
+
+    opacity: 0;
+
+    transition: 0.15s;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chat-item:hover .chat-menu-btn {
+    opacity: 1;
+}
+
+.chat-menu-btn:hover {
+    background: #3a3b42;
+    color: white;
+}
+
+
+/* =========================
+   CHAT MENU DROPDOWN
+========================= */
+
+.chat-menu {
+
+    position: fixed;
+
+    background: #202123;
+
+    border-radius: 8px;
+
+    border: 1px solid #3e3f4b;
+
+    overflow: hidden;
+
+    min-width: 160px;
+
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+
+    animation: fadeIn 0.12s ease;
+}
+
+
+/* items */
+
+.chat-menu-item {
+
+    padding: 10px 14px;
+
+    font-size: 14px;
+
+    cursor: pointer;
+
+    transition: 0.12s;
+}
+
+.chat-menu-item:hover {
+    background: #2a2b32;
+}
+
+
+/* delete */
+
+.chat-menu-item.delete {
+    color: #ff6b6b;
+}
+
+.chat-menu-item.delete:hover {
+    background: #5a2a2a;
+}
+/* USER MENU CONTAINER */
+.user-menu {
+    position: absolute;
+    bottom: 70px;
+    left: 10px;
+    width: 260px;
+
+    background: #202123;
+    border: 1px solid #3e3f4b;
+    border-radius: 12px;
+
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+
+    padding: 6px 0;
+
+    animation: menuFade 0.15s ease;
+
+    z-index: 999;
+}
+
+/* ANIMATION */
+@keyframes menuFade {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+/* MENU ITEMS */
+.user-menu-item {
+
+    padding: 12px 16px;
+
+    font-size: 14px;
+
+    color: #ececf1;
+
+    cursor: pointer;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    transition: background 0.15s;
+}
+
+/* HOVER */
+.user-menu-item:hover {
+    background: #2a2b32;
+}
+
+/* DANGER ITEM */
+.user-menu-item.danger {
+    color: #ff6b6b;
+}
+
+.user-menu-item.danger:hover {
+    background: rgba(255,0,0,0.08);
+}
+
+
+/* DIVIDER */
+.user-menu-divider {
+    height: 1px;
+    background: #3e3f4b;
+    margin: 6px 0;
+}
+/* USER MENU */
+.user-menu {
+    position: absolute;
+    width: 260px;
+    background: #202123;
+    border: 1px solid #3e3f4b;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    padding: 6px 0;
+    animation: menuFade 0.15s ease;
+    z-index: 9999;
+}
+
+@keyframes menuFade {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.user-menu-item {
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #ececf1;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.user-menu-item:hover {
+    background: #2a2b32;
+}
+
+.user-menu-item.danger {
+    color: #ff6b6b;
+}
+
+.user-menu-item.danger:hover {
+    background: rgba(255,0,0,0.08);
+}
+
+.user-menu-divider {
+    height: 1px;
+    background: #3e3f4b;
+    margin: 6px 0;
+}
+.writing-indicator {
+    color: #a1a1aa;
+    font-style: italic;
+}
+
+.writing-indicator::after {
+    content: "";
+    animation: dots 1.4s infinite;
+}
+
+@keyframes dots {
+
+    0%   { content: ""; }
+    25%  { content: "."; }
+    50%  { content: ".."; }
+    75%  { content: "..."; }
+    100% { content: ""; }
+
+}

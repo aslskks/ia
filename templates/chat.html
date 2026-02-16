@@ -4,725 +4,50 @@
 <meta charset="UTF-8">
 <title>AI Assistant</title>
 
-<style>
-
-/* =========================================================
-   CHATGPT-LEVEL PROFESSIONAL UI
-   Version: ULTRA PRO 2026
-========================================================= */
-
-:root {
-
-    --bg-main: #343541;
-    --bg-sidebar: #202123;
-    --bg-hover: #2a2b32;
-    --bg-active: #2f3038;
-
-    --bg-user: #19c37d;
-    --bg-ai: #444654;
-
-    --bg-input: #40414f;
-
-    --border: #2a2b32;
-    --border-light: #3a3b47;
-
-    --text-main: #ececf1;
-    --text-secondary: #b4b4be;
-    --text-muted: #8e8ea0;
-
-    --accent: #19c37d;
-    --accent-hover: #13a46b;
-
-    --radius: 12px;
-
-    --shadow:
-        0 1px 2px rgba(0,0,0,0.2),
-        0 8px 24px rgba(0,0,0,0.35);
-
-}
-
-/* RESET */
-
-* {
-
-    box-sizing: border-box;
-
-}
-
-html, body {
-
-    margin: 0;
-    height: 100%;
-
-    font-family:
-        Inter,
-        system-ui,
-        -apple-system,
-        Segoe UI,
-        Roboto;
-
-    background: var(--bg-main);
-    color: var(--text-main);
-
-}
-
-/* LAYOUT */
-
-body {
-
-    display: flex;
-    overflow: hidden;
-
-}
-
-/* SIDEBAR */
-
-.sidebar {
-
-    width: 260px;
-    background: var(--bg-sidebar);
-
-    display: flex;
-    flex-direction: column;
-
-    border-right: 1px solid var(--border);
-
-}
-
-.new-chat {
-
-    margin: 12px;
-
-    padding: 12px;
-
-    border-radius: 8px;
-
-    border: 1px solid var(--border-light);
-
-    background: transparent;
-
-    color: white;
-
-    cursor: pointer;
-
-    transition: 0.2s;
-
-}
-
-.new-chat:hover {
-
-    background: var(--bg-hover);
-    border-color: var(--accent);
-
-}
-
-/* CHAT LIST */
-
-.chat-list {
-
-    flex: 1;
-    overflow-y: auto;
-
-    padding: 8px;
-
-}
-
-.chat-item {
-
-    padding: 12px;
-
-    border-radius: 8px;
-
-    cursor: pointer;
-
-    transition: 0.15s;
-
-}
-
-.chat-item:hover {
-
-    background: var(--bg-hover);
-
-}
-
-.chat-item.active {
-
-    background: var(--bg-active);
-
-}
-
-/* MAIN */
-
-.main {
-
-    flex: 1;
-
-    display: flex;
-    flex-direction: column;
-
-}
-
-/* MESSAGES */
-
-.messages {
-
-    flex: 1;
-
-    overflow-y: auto;
-
-    padding: 40px 20px;
-
-}
-
-/* MESSAGE ROW */
-
-.message {
-
-    display: flex;
-
-    gap: 14px;
-
-    margin-bottom: 28px;
-
-    animation: fadeUp 0.25s ease;
-
-}
-
-/* AVATAR */
-
-.avatar {
-
-    width: 32px;
-    height: 32px;
-
-    border-radius: 6px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    font-weight: bold;
-
-    flex-shrink: 0;
-
-}
-
-.avatar.user {
-
-    background: var(--accent);
-    color: white;
-
-}
-
-.avatar.ai {
-
-    background: #565869;
-
-}
-
-/* BUBBLE */
-
-.bubble {
-
-    padding: 14px 18px;
-
-    border-radius: var(--radius);
-
-    box-shadow: var(--shadow);
-
-    line-height: 1.6;
-
-    max-width: 720px;
-
-}
-
-.message.user .bubble {
-
-    background: var(--bg-user);
-
-}
-
-.message.assistant .bubble {
-
-    background: var(--bg-ai);
-
-}
-
-/* STREAM CURSOR */
-
-.cursor {
-
-    display: inline-block;
-
-    width: 8px;
-    height: 18px;
-
-    background: white;
-
-    margin-left: 4px;
-
-    animation: blink 1s infinite;
-
-}
-
-@keyframes blink {
-
-    0%,50%,100% {opacity:1}
-    25%,75% {opacity:0}
-
-}
-
-/* INPUT */
-
-.input-area {
-
-    padding: 20px;
-
-}
-
-.input-box {
-
-    display: flex;
-
-    align-items: center;
-
-    background: var(--bg-input);
-
-    border-radius: 14px;
-
-    padding: 10px;
-
-    box-shadow: var(--shadow);
-
-}
-
-/* TEXTAREA */
-
-textarea {
-
-    flex: 1;
-
-    background: transparent;
-
-    border: none;
-
-    outline: none;
-
-    color: white;
-
-    resize: none;
-
-    font-size: 15px;
-
-    max-height: 200px;
-
-}
-
-/* SEND */
-
-.send {
-
-    background: var(--accent);
-
-    border: none;
-
-    padding: 10px 18px;
-
-    border-radius: 8px;
-
-    cursor: pointer;
-
-    transition: 0.2s;
-
-}
-
-.send:hover {
-
-    background: var(--accent-hover);
-
-    transform: scale(1.05);
-
-}
-
-/* CODE */
-
-pre {
-
-    background: #1e1e1e;
-
-    padding: 14px;
-
-    border-radius: 8px;
-
-    overflow-x: auto;
-
-}
-
-/* SCROLLBAR */
-
-::-webkit-scrollbar {
-
-    width: 8px;
-
-}
-
-::-webkit-scrollbar-thumb {
-
-    background: #565869;
-    border-radius: 6px;
-
-}
-
-/* ANIMATION */
-
-@keyframes fadeUp {
-
-    from {
-
-        opacity: 0;
-        transform: translateY(10px);
-
-    }
-
-    to {
-
-        opacity: 1;
-        transform: translateY(0);
-
-    }
-
-}
-
-/* MOBILE */
-
-@media (max-width: 800px) {
-
-    .sidebar {
-
-        display: none;
-
-    }
-
-}
-/* =========================
-   CHAT MENU (3 DOTS)
-========================= */
-
-.chat-menu {
-
-    position: fixed;
-
-    min-width: 180px;
-
-    background: rgba(32,33,35,0.98);
-
-    backdrop-filter: blur(12px);
-
-    border-radius: 10px;
-
-    border: 1px solid #3a3b47;
-
-    box-shadow:
-        0 10px 30px rgba(0,0,0,0.4),
-        0 0 0 1px rgba(255,255,255,0.02);
-
-    padding: 6px;
-
-    z-index: 9999;
-
-    animation: menuFade 0.15s ease;
-
-}
-
-/* ITEM */
-
-.chat-menu-item {
-
-    padding: 10px 14px;
-
-    border-radius: 6px;
-
-    cursor: pointer;
-
-    font-size: 14px;
-
-    color: #ececf1;
-
-    transition: 0.15s;
-
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-}
-
-/* HOVER */
-
-.chat-menu-item:hover {
-
-    background: #2a2b32;
-
-}
-
-/* DELETE */
-
-.chat-menu-item.delete {
-
-    color: #ff6b6b;
-
-}
-.chat-menu-btn {
-
-    background: transparent;
-    border: none;
-
-    color: #8e8ea0;
-
-    font-size: 18px;
-
-    cursor: pointer;
-
-    border-radius: 6px;
-
-    padding: 4px 8px;
-
-    opacity: 0;
-
-    transition: 0.2s;
-
-}
-
-/* show only on hover */
-
-.chat-item:hover .chat-menu-btn {
-
-    opacity: 1;
-
-}
-
-.chat-menu-btn:hover {
-
-    background: #2a2b32;
-    color: white;
-
-}
-
-.chat-menu-item.delete:hover {
-
-    background: rgba(255,107,107,0.1);
-
-}
-
-/* ANIMATION */
-
-@keyframes menuFade {
-
-    from {
-
-        opacity: 0;
-        transform: translateY(-6px) scale(0.96);
-
-    }
-
-    to {
-
-        opacity: 1;
-        transform: translateY(0) scale(1);
-
-    }
-
-}
-/* =========================
-   USER CARD
-========================= */
-
-.user-card {
-
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    padding: 10px;
-
-    border-radius: 10px;
-
-    cursor: pointer;
-
-    transition: 0.2s;
-
-}
-
-.user-card:hover {
-
-    background: #2a2b32;
-
-}
-
-/* LEFT SIDE */
-
-.user-left {
-
-    display: flex;
-    align-items: center;
-    gap: 10px;
-
-}
-
-/* AVATAR */
-
-.user-avatar {
-
-    width: 36px;
-    height: 36px;
-
-    border-radius: 8px;
-
-    background: #19c37d;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    font-weight: bold;
-
-    color: white;
-
-}
-
-/* TEXT */
-
-.user-text {
-
-    display: flex;
-    flex-direction: column;
-
-}
-
-.user-name {
-
-    font-size: 14px;
-    font-weight: 500;
-
-}
-
-.user-email {
-
-    font-size: 12px;
-    color: #8e8ea0;
-
-}
-
-/* RIGHT ICON */
-
-.user-arrow {
-
-    color: #8e8ea0;
-
-    font-size: 18px;
-
-}
-
-/* =========================
-   USER MENU
-========================= */
-
-.user-menu {
-
-    position: fixed;
-
-    min-width: 220px;
-
-    background: rgba(32,33,35,0.98);
-
-    backdrop-filter: blur(10px);
-
-    border-radius: 10px;
-
-    border: 1px solid #3a3b47;
-
-    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-
-    padding: 6px;
-
-    animation: menuFade 0.15s ease;
-
-}
-
-/* ITEM */
-
-.user-menu-item {
-
-    padding: 12px 14px;
-
-    border-radius: 6px;
-
-    cursor: pointer;
-
-    font-size: 14px;
-
-    transition: 0.15s;
-
-}
-
-.user-menu-item:hover {
-
-    background: #2a2b32;
-
-}
-
-.user-menu-item.danger {
-
-    color: #ff6b6b;
-
-}
-
-.user-menu-item.danger:hover {
-
-    background: rgba(255,107,107,0.1);
-
-}
-
-
-</style>
+<link href="../static/chat.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 
 <body>
 
-<div class="sidebar-footer">
+<div class="sidebar">
 
-    <div class="user-card" onclick="toggleUserMenu(event)">
+    <button class="new-chat" onclick="newChat()">
+        + New chat
+    </button>
 
+    <div class="chat-list" id="chatList"></div>
 
-        <div class="user-left">
+    <div class="sidebar-footer">
 
-            <div class="user-avatar" id="userAvatar">
-                U
-            </div>
+        <div class="user-card" onclick="toggleUserMenu(event)">
 
-            <div class="user-text">
+            <div class="user-left">
 
-                <div class="user-name" id="username">
-                    User Name
+                <div class="user-avatar" id="userAvatar">
+                    U
                 </div>
 
-                <div class="user-email" id="userEmail">
-                    user@email.com
+                <div class="user-text">
+
+                    <div class="user-name" id="username">
+                        User Name
+                    </div>
+
+                    <div class="user-email" id="userEmail">
+                        user@email.com
+                    </div>
+
                 </div>
 
             </div>
 
-        </div>
+            <div class="user-arrow">
+            </div>
 
-        <div class="user-arrow">
-            ⋯
         </div>
 
     </div>
-
-</div>
-
-
 
 </div>
 
@@ -731,12 +56,20 @@ pre {
     <div class="messages" id="messages"></div>
 
     <div class="input-area">
+
         <div class="input-box">
-<textarea id="input" placeholder="Send a message..."></textarea>
-<button class="send" onclick="sendMessage()">Send</button>
+
+            <textarea id="input" placeholder="Send a message..."></textarea>
+
+            <button class="send" onclick="sendMessage()">
+                Send
+            </button>
 
         </div>
+
     </div>
+
+</div>
 
 </div>
 
@@ -754,36 +87,64 @@ function escapeHtml(text) {
 
 function renderMessage(role, content) {
 
+    const messages = document.getElementById("messages")
+
     const container = document.createElement("div")
     container.className = "message " + role
 
-    let html
+    const avatar = document.createElement("div")
+    avatar.className = "avatar"
 
-    if(role === "assistant") {
+    avatar.innerText =
+        role === "user"
+        ? document.getElementById("userAvatar").innerText
+        : "AI"
 
-        html = content.replace(/```(.*?)```/gs, function(match, code) {
+    const bubble = document.createElement("div")
+    bubble.className = "bubble"
+    bubble.innerHTML = formatMessage(content)
 
-            const safeCode = escapeHtml(code)
+    // user derecha
+    if (role === "user") {
 
-            return `
-            <div class="code-container">
-                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-                <pre>${safeCode}</pre>
-            </div>`
-        })
-
-    } else {
-
-        html = escapeHtml(content)
+        container.appendChild(bubble)
+        container.appendChild(avatar)
 
     }
 
-    container.innerHTML = `<div class="bubble">${html}</div>`
+    // assistant izquierda
+    else {
 
-    document.getElementById("messages").appendChild(container)
+        container.appendChild(avatar)
+        container.appendChild(bubble)
+
+    }
+
+    messages.appendChild(container)
 
     scrollBottom()
 }
+
+
+
+async function loadUser() {
+
+    const res = await fetch("/me")
+    const user = await res.json()
+
+    document.getElementById("username").innerText = user.name
+    document.getElementById("userEmail").innerText = user.email
+
+    currentUserAvatar = user.name.charAt(0).toUpperCase()
+
+    document.getElementById("userAvatar").innerText =
+        currentUserAvatar
+}
+
+
+loadUser()
+
+
 
 function renderWritingIndicator() {
 
@@ -793,18 +154,31 @@ function renderWritingIndicator() {
     container.id = "writingBubble"
 
     container.innerHTML = `
-        <div class="bubble">
-            <span class="writing-indicator">
-                writing<span class="writing-dots"></span>
-            </span>
-        </div>
+<div id="writingIndicator" class="writing-indicator" style="display:none;">
+    writing<span id="dots"></span>
+</div>
+
     `
 
     document.getElementById("messages").appendChild(container)
 
     scrollBottom()
 }
+const textarea = document.getElementById("input")
 
+textarea.addEventListener("keydown", function(e) {
+    // Enter = enviar
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault() // evita salto de línea
+        sendMessage()
+    }
+})
+textarea.addEventListener("input", function() {
+
+    this.style.height = "auto"
+    this.style.height = this.scrollHeight + "px"
+
+})
 function removeWritingIndicator() {
 
     const el = document.getElementById("writingBubble")
@@ -816,6 +190,35 @@ function scrollBottom() {
     const m = document.getElementById("messages")
     m.scrollTop = m.scrollHeight
 }
+function formatMessage(text) {
+
+    // escapar html
+    text = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+
+    // bloques de código
+    text = text.replace(/```(\w+)?\n([\s\S]*?)```/g,
+        '<pre class="code-block"><code>$2</code></pre>'
+    )
+
+    // saltos de linea SOLO fuera de código
+    text = text.replace(/\n/g, "<br>")
+
+    // arreglar doble <br> dentro de pre
+    text = text.replace(/<pre class="code-block"><code>([\s\S]*?)<\/code><\/pre>/g,
+        function(match, code) {
+
+            const clean = code.replace(/<br>/g, "\n")
+
+            return `<pre class="code-block"><code>${clean}</code></pre>`
+        }
+    )
+
+    return text
+}
+
 
 async function sendMessage() {
 
@@ -860,40 +263,51 @@ async function sendMessage() {
         document.getElementById("messages").appendChild(container)
 
         let fullText = ""
+let buffer = ""
 
-        while (true) {
+while (true) {
 
-            const { done, value } = await reader.read()
+    const { done, value } = await reader.read()
 
-            if (done) break
+    if (done) break
 
-            const chunk = decoder.decode(value)
+    buffer += decoder.decode(value, { stream: true })
 
-            const lines = chunk.split("\n")
+    let lines = buffer.split("\n")
 
-            for (const line of lines) {
+    // guardar última línea incompleta
+    buffer = lines.pop()
 
-                if (!line.trim()) continue
+    for (const line of lines) {
 
-                const data = JSON.parse(line)
+        if (!line.trim()) continue
 
-                if (data.chat_id)
-                    currentChat = data.chat_id
+        try {
 
-                if (data.token) {
+            const data = JSON.parse(line)
 
-                    fullText += data.token
+            if (data.chat_id)
+                currentChat = data.chat_id
 
-                    bubble.innerText = fullText
+            if (data.token) {
 
-                    scrollBottom()
-                }
+                fullText += data.token
+
+                bubble.innerHTML = formatMessage(fullText)
+
+                scrollBottom()
             }
+
+        } catch (e) {
+
+            console.error("JSON parse error:", e, line)
+
         }
 
-        // re-render with code blocks support
-        container.remove()
-        renderMessage("assistant", fullText)
+    }
+}
+
+        bubble.innerHTML = formatMessage(fullText)
 
         loadChats()
 
@@ -919,6 +333,12 @@ async function loadChats() {
     const chats = await res.json()
 
     const list = document.getElementById("chatList")
+
+    if (!list) {
+        console.error("chatList no existe")
+        return
+    }
+
     list.innerHTML = ""
 
     for (const id in chats) {
@@ -929,17 +349,18 @@ async function loadChats() {
         if (id === currentChat)
             div.classList.add("active")
 
-        const title = document.createElement("span")
-        title.className = "chat-title"
-        title.innerText = chats[id].title
+        div.onclick = function() {
+            loadChat(id)
+        }
 
-        title.onclick = () => loadChat(id)
+        const title = document.createElement("div")
+        title.innerText = chats[id].title
 
         const menuBtn = document.createElement("button")
         menuBtn.className = "chat-menu-btn"
         menuBtn.innerText = "⋯"
 
-        menuBtn.onclick = (e) => {
+        menuBtn.onclick = function(e) {
             e.stopPropagation()
             toggleChatMenu(id, menuBtn)
         }
@@ -952,11 +373,11 @@ async function loadChats() {
 }
 
 
-async function loadChat(id) {
+async function loadChat(chat_id) {
 
-    currentChat = id
+    currentChat = chat_id
 
-    const res = await fetch("/load_chat/" + id)
+    const res = await fetch("/messages/" + chat_id)
 
     const data = await res.json()
 
@@ -964,21 +385,15 @@ async function loadChat(id) {
 
     messages.innerHTML = ""
 
-    data.messages.forEach(m => renderMessage(m.role, m.content))
+    for (const msg of data) {
 
-    loadChats()
+        renderMessage(msg.role, msg.content)
+
+    }
+
 }
 
-function copyCode(btn) {
 
-    const code = btn.nextElementSibling.innerText
-
-    navigator.clipboard.writeText(code)
-
-    btn.innerText = "Copied"
-
-    setTimeout(() => btn.innerText = "Copy", 1000)
-}
 
 loadChats()
 
@@ -1059,17 +474,19 @@ async function deleteChat(chatId) {
 }
 let userMenu = null
 
-function toggleUserMenu(event) {
+function toggleUserMenu(event){
 
-    event.stopPropagation()
+    event.stopPropagation();
 
-    if (userMenu) {
-        closeUserMenu()
-        return
+    let old = document.querySelector(".user-menu");
+
+    if(old){
+        old.remove();
+        return;
     }
 
-    const menu = document.createElement("div")
-    menu.className = "user-menu"
+    const menu = document.createElement("div");
+    menu.className = "user-menu";
 
     menu.innerHTML = `
         <div class="user-menu-item" onclick="selectUser()">
@@ -1080,31 +497,31 @@ function toggleUserMenu(event) {
             🧹 Clear conversations
         </div>
 
+        <div class="user-menu-divider"></div>
+
         <div class="user-menu-item danger" onclick="logout()">
             🚪 Log out
         </div>
-    `
+    `;
 
-    document.body.appendChild(menu)
+    document.body.appendChild(menu);
 
-    const rect = document
-        .querySelector(".user-card")
-        .getBoundingClientRect()
+    const rect = event.currentTarget.getBoundingClientRect();
 
-    let menuTop = rect.top - menu.offsetHeight - 8
-
-    if (menuTop < 10)
-        menuTop = rect.bottom + 8
-
-    menu.style.top = menuTop + "px"
-    menu.style.left = rect.left + "px"
-
-    userMenu = menu
-
-    setTimeout(() => {
-        document.addEventListener("click", closeUserMenu)
-    }, 10)
+    menu.style.left = rect.left + "px";
+    menu.style.top = (rect.top - menu.offsetHeight - 10) + "px";
 }
+
+
+/* cerrar al hacer click fuera */
+document.addEventListener("click", function(){
+
+    const menu = document.querySelector(".user-menu");
+
+    if(menu) menu.remove();
+
+});
+
 
 function closeUserMenu() {
 
