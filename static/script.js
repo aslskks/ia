@@ -1,29 +1,17 @@
-
 let mediaRecorder;
-
 let audioChunks = [];
-
 let stream;
-
 let isRecording = false;
 
 const voiceBtn = document.getElementById("voiceBtn");
 
-
 async function toggleRecording() {
-
     if (!isRecording) {
-
         startRecording();
-
     } else {
-
         stopRecording();
-
     }
-
 }
-
 
 async function startRecording() {
 
@@ -33,25 +21,32 @@ async function startRecording() {
             audio: true
         });
 
-        mediaRecorder = new MediaRecorder(stream);
+        const mimeType = MediaRecorder.isTypeSupported("audio/webm")
+            ? "audio/webm"
+            : "audio/ogg";
+
+mediaRecorder = new MediaRecorder(stream, {
+    mimeType: mimeType,
+    audioBitsPerSecond: 128000
+});
 
         audioChunks = [];
 
         voiceBtn.classList.add("recording");
 
         mediaRecorder.ondataavailable = e => {
-
-            audioChunks.push(e.data);
-
+            if (e.data.size > 0) {
+                audioChunks.push(e.data);
+            }
         };
 
         mediaRecorder.onstop = async () => {
 
             const blob = new Blob(audioChunks, {
-                type: "audio/wav"
+                type: mimeType
             });
 
-            await sendAudioToServer(blob);
+            await sendAudioToServer(blob, mimeType);
 
         };
 
@@ -61,13 +56,9 @@ async function startRecording() {
 
     }
     catch (err) {
-
         console.error(err);
-
     }
-
 }
-
 
 function stopRecording() {
 
@@ -78,31 +69,36 @@ function stopRecording() {
     voiceBtn.classList.remove("recording");
 
     isRecording = false;
-
 }
 
-
-async function sendAudioToServer(blob) {
+async function sendAudioToServer(blob, mimeType) {
 
     const formData = new FormData();
 
-    formData.append("audio", blob, "mic.wav");
+    const respo = await fetch("/uuid");
+    const user = await respo.json();
+
+    const ext = mimeType.includes("webm") ? "webm" : "ogg";
+
+    formData.append("audio", blob, `voice/${user.uuid}.${ext}`);
 
     const res = await fetch("/speech_to_text", {
-
         method: "POST",
-
         body: formData
-
     });
 
     const data = await res.json();
 
+console.log("Respuesta completa:", data);
+console.log("Texto:", data.text);
+
+
     if (data.text) {
-        document.getElementById("messageInput").value = data.text;
-        sendMessage()
+        document.getElementById("input").value = data.text;
+        sendMessage();
     }
 }
+
 let currentChat = null
 
 function escapeHtml(text) {
@@ -127,20 +123,14 @@ function renderMessage(role, content) {
         role === "user"
         ? document.getElementById("userAvatar").innerText
         : "AI"
-
     const bubble = document.createElement("div")
     bubble.className = "bubble"
     bubble.innerHTML = formatMessage(content)
-
-    // user derecha
     if (role === "user") {
-
         container.appendChild(bubble)
         container.appendChild(avatar)
-
     }
 
-    // assistant izquierda
     else {
 
         container.appendChild(avatar)
@@ -195,9 +185,8 @@ function renderWritingIndicator() {
 const textarea = document.getElementById("input")
 
 textarea.addEventListener("keydown", function(e) {
-    // Enter = enviar
     if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault() // evita salto de línea
+        e.preventDefault()
         sendMessage()
     }
 })
@@ -219,22 +208,16 @@ function scrollBottom() {
     m.scrollTop = m.scrollHeight
 }
 function formatMessage(text) {
-
-    // escapar html
     text = text
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
-
-    // bloques de código
     text = text.replace(/```(\w+)?\n([\s\S]*?)```/g,
         '<pre class="code-block"><code>$2</code></pre>'
     )
-
-    // saltos de linea SOLO fuera de código
     text = text.replace(/\n/g, "<br>")
 
-    // arreglar doble <br> dentro de pre
+    
     text = text.replace(/<pre class="code-block"><code>([\s\S]*?)<\/code><\/pre>/g,
         function(match, code) {
 
@@ -279,8 +262,6 @@ async function sendMessage() {
         const decoder = new TextDecoder()
 
         removeWritingIndicator()
-
-        // create empty assistant bubble
         const container = document.createElement("div")
         container.className = "message assistant"
 
@@ -302,8 +283,6 @@ while (true) {
     buffer += decoder.decode(value, { stream: true })
 
     let lines = buffer.split("\n")
-
-    // guardar última línea incompleta
     buffer = lines.pop()
 
     for (const line of lines) {
