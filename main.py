@@ -1,9 +1,9 @@
-from flask import Flask, request, session, render_template, Response, copy_current_request_context, redirect, url_for, jsonify
+from flask import Flask, request, session, render_template, Response, redirect, url_for, jsonify, send_from_directory
 import json
 import ollama
 import secrets
 import os
-import uuid
+import uuid as uuid_lib
 import mysql.connector as mysql
 from flask_wtf import CSRFProtect
 from passlib.hash import argon2
@@ -14,7 +14,27 @@ from email.message import EmailMessage
 import ssl
 from datetime import timedelta, datetime
 from faster_whisper import WhisperModel
-from langdetect import detect
+from tavily import TavilyClient
+import re
+import subprocess
+
+tavily = TavilyClient(api_key="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")
+def tavily_search(query):
+    response = tavily.search(
+        query=query,
+        search_depth="advanced",   # or "advanced"
+        max_results=5
+    )
+
+    results = []
+    for r in response["results"]:
+        results.append({
+            "title": r["title"],
+            "url": r["url"],
+            "content": r["content"]
+        })
+
+    return results
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
@@ -40,7 +60,23 @@ model = WhisperModel(
 def open_conn():
     conn = mysql.connect(host="localhost", user="root", password="hola", database="chat")
     return conn, conn.cursor()
+def tavily_search(query):
+    try:
+        result = tavily.search(
+            query=query,
+            search_depth="advanced",
+            max_results=5
+        )
 
+        formatted = "\n\n".join([
+            f"{r['title']}\n{r['content']}\n{r['url']}"
+            for r in result["results"]
+        ])
+        return formatted
+
+    except Exception as e:
+        print("TAVILY ERROR:", e)
+        return ""
 conn, cursor = open_conn()
 cursor.execute("""CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -88,6 +124,33 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS user_memory (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 """)
+def extract_python_blocks(text):
+    pattern = r"```(.*?)```"
+    matches = re.findall(pattern, text, re.DOTALL)
+    return [m.strip() for m in matches]
+
+import re
+
+def extract_search(text):
+    match = re.search(r"\?\?\?(.*?)\?\?\?", text, re.DOTALL)
+    if not match:
+        return None
+
+    q = match.group(1).strip()
+
+    # remove quotes
+    q = q.replace('"', '').replace("'", "")
+
+    # remove helper words in multiple languages
+    q = re.sub(
+        r'^(búsqueda\s+por|buscar\s+por|buscar|búsqueda|search\s+for|search|lookup)\s+',
+        '',
+        q,
+        flags=re.I
+    )
+
+    return q.strip()
+
 conn.commit()
 cursor.close()
 conn.close()
@@ -103,7 +166,7 @@ Conversation:
 """
 
     response = ollama.chat(
-        model="llama3.2",
+        model="llama3.1:8b",
         messages=[{"role":"user","content":prompt}]
     )
 
@@ -139,7 +202,7 @@ def me():
     })
 @app.route("/uuid")
 def uuid_generate():
-    uuid_4 = uuid.uuid4()
+    uuid_4 = uuid_lib.uuid4()
     return jsonify({
         "uuid": uuid_4,
     })
@@ -204,7 +267,7 @@ def reset(code):
 @csrf.exempt
 def new_chat():
 
-    chat_id = str(uuid.uuid4())
+    chat_id = str(uuid_lib.uuid4())
 
     conn, cursor = open_conn()
 
@@ -296,7 +359,7 @@ def transcribe():
 
     filename = os.path.join(
         "voice",
-        f"{uuid.uuid4().hex}.wav"
+        f"{uuid_lib.uuid4().hex}.wav"
     )
 
     file.save(filename)
@@ -318,7 +381,7 @@ def generate_chat_title(message):
     try:
 
         response = ollama.chat(
-            model="llama3.2",
+            model="llama3.1:8b",
             messages=[
                 {
                     "role": "user",
@@ -373,7 +436,7 @@ def select_user_post():
     return "ok"
 def create_chat(user_id):
     db = mysql.connect(host="localhost", user="root", password="hola", database="chat")
-    chat_id = str(uuid.uuid4())
+    chat_id = str(uuid_lib.uuid4())
 
     cursor = db.cursor()
 
@@ -405,10 +468,11 @@ def create_user():
     return "ok"
 
 
-@app.route("/delete_all_messages", methods=["POST"])
+@app.route("/delete_all_chats", methods=["POST"])
+@csrf.exempt
 def delete_all_messages():
 
-    username = session["user"]
+    username = session.get("user")
     db = mysql.connect(host="localhost", user="root", password="hola", database="chat")
     cursor = db.cursor()
     user_id = session.get("user_id")
@@ -423,8 +487,8 @@ def delete_all_messages():
     )
 
     cursor.execute(
-        "DELETE FROM chats WHERE user=%s",
-        (username,)
+        "DELETE FROM chats WHERE user_id=%s",
+        (user_id,)
     )
 
     db.commit()
@@ -489,8 +553,62 @@ def get_messages(chat_id):
 
     return jsonify(rows)
 
+def run_python_sandbox(code, uuid=None):
+
+    import uuid as uuid_lib
+
+    if uuid is None:
+        uuid = str(uuid_lib.uuid4())
+
+    FILES_DIR = os.path.join(os.getcwd(), "files")
+    sandbox_dir = os.path.join(FILES_DIR, uuid)
+    os.makedirs(sandbox_dir, exist_ok=True)
+
+    script_path = os.path.join(sandbox_dir, "script.py")
+
+    with open(script_path, "w", encoding="utf-8") as f:
+        f.write(code)
+
+    result = subprocess.run(
+        ["python", script_path],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=5,
+        cwd=sandbox_dir   # ⭐⭐⭐ THIS IS THE FIX
+    )
+
+    files = [f for f in os.listdir(sandbox_dir) if f != "script.py"]
+
+    return {
+        "output": result.stdout + result.stderr,
+        "files": files,
+        "uuid": uuid
+    }
 
 
+@app.route("/download/<uuid>/<filename>")
+def download_file(uuid, filename):
+    FILES_DIR = os.path.join(os.getcwd(), "files")
+    sandbox_dir = os.path.join(FILES_DIR, uuid)
+
+    return send_from_directory(sandbox_dir, filename, as_attachment=True)
+@app.post("/run_block")
+@csrf.exempt
+def run_block():
+
+    if "user_id" not in session:
+        return {"error":"not logged"},401
+
+    data = request.json
+    code = data.get("code","")
+
+    if not code:
+        return {"error":"empty"},400
+    result = run_python_sandbox(code)
+
+    return result
 @app.route("/chat", methods=["POST"])
 @csrf.exempt
 def chat():
@@ -517,7 +635,7 @@ def chat():
     # crear chat si no existe
     if not chat_id:
 
-        chat_id = str(uuid.uuid4())
+        chat_id = str(uuid_lib.uuid4())
 
         cursor.execute(
             """
@@ -550,25 +668,21 @@ def chat():
         """,
         (chat_id,)
     )
-
+    user_id = session["user_id"]
     messages = cursor.fetchall()
     cursor.close()
     db.close()
-    @copy_current_request_context
     def generate():
-
         full_reply = ""
-
         try:
             conn, cursor = open_conn()
             cursor.execute(
                 "SELECT memory FROM user_memory WHERE user_id=%s",
-                (session["user_id"],)
+                (user_id,)
             )
-
             memories = "\n".join([m[0] for m in cursor.fetchall()])
             stream = ollama.chat(
-                model="llama3.2",
+                model="llama3.1:8b",
                 messages=[{"role":"system","content":SYSTEM_PROMPT}] + messages,
                 stream=True
             )
@@ -584,11 +698,47 @@ def chat():
         except Exception as e:
             print("STREAM ERROR:", e)
         print("FINAL REPLY:", full_reply)
+        # =========================
+        # SEARCH AGENT LOOP
+        # =========================
+
+        search_query = extract_search(full_reply)
+
+        if search_query:
+            print("SEARCH NEEDED:", search_query)
+
+            try:
+                web_context = tavily_search(search_query)
+
+                followup_messages = messages + [
+                    {"role": "assistant", "content": full_reply},
+                    {"role": "system", "content": f"Web results:\n{web_context}\n\nAnswer the user question fully."}
+                ]
+                print(followup_messages)
+                stream2 = ollama.chat(
+                    model="llama3.1:8b",
+                    messages=[{"role":"system","content":SYSTEM_PROMPT}] + followup_messages,
+                    stream=True
+                )
+
+                full_reply = ""
+
+                for chunk in stream2:
+                    token = chunk["message"]["content"]
+                    if not token:
+                        continue
+
+                    full_reply += token
+                    yield json.dumps({
+                        "token": token,
+                        "chat_id": chat_id
+                    }) + "\n"
+
+            except Exception as e:
+                print("SEARCH ERROR:", e)
+
         if full_reply.strip():
-
             conn2, cursor2 = open_conn()
-
-            # guardar respuesta
             cursor2.execute(
                 """
                 INSERT INTO messages (chat_id, role, content)
@@ -755,13 +905,10 @@ def register():
         if "user" in session:
             return redirect(url_for("dashboard"))
         return render_template("index.html", message=message)
-
     conn, cursor = open_conn()
-
     user = request.form.get("user")
     password = request.form.get("password")
     email = request.form.get("email")
-
     cursor.execute("SELECT 1 FROM users WHERE user = %s", (user,))
     if cursor.fetchone():
         return render_template("index.html", error="Username already exists")
@@ -953,4 +1100,4 @@ def load_chat(chat_id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True,)
+    app.run(debug=True, use_reloader=False)

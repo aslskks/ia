@@ -139,7 +139,7 @@ function renderMessage(role, content) {
     }
 
     messages.appendChild(container)
-
+    container.offsetHeight
     scrollBottom()
 }
 
@@ -171,12 +171,12 @@ function renderWritingIndicator() {
 
     container.id = "writingBubble"
 
-    container.innerHTML = `
-<div id="writingIndicator" class="writing-indicator" style="display:none;">
+container.innerHTML = `
+<div id="writingIndicator" class="writing-indicator">
     writing<span id="dots"></span>
 </div>
+`
 
-    `
 
     document.getElementById("messages").appendChild(container)
 
@@ -207,50 +207,173 @@ function scrollBottom() {
     const m = document.getElementById("messages")
     m.scrollTop = m.scrollHeight
 }
-function formatMessage(text) {
-    text = text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-    text = text.replace(/```(\w+)?\n([\s\S]*?)```/g,
-        '<pre class="code-block"><code>$2</code></pre>'
-    )
-    text = text.replace(/\n/g, "<br>")
+function formatMessage(text){
 
-    
-    text = text.replace(/<pre class="code-block"><code>([\s\S]*?)<\/code><\/pre>/g,
-        function(match, code) {
+    if(!text) return ""
 
-            const clean = code.replace(/<br>/g, "\n")
-
-            return `<pre class="code-block"><code>${clean}</code></pre>`
+    /* SANDBOX */
+    text = text.replace(
+        /\[SANDBOX OUTPUT\]\n?([\s\S]*?)(?=\n|$)/gi,
+        (m, out)=>{
+            return `<div class="sandbox-output">${escapeHtml(out)}</div>`
         }
     )
 
-    return text
+    /* BLOCKS */
+    const blocks = []
+
+    text = text.replace(/```(\w+)?\n([\s\S]*?)```/g,(match,lang,code)=>{
+        const id = blocks.length
+
+        blocks.push({
+            lang: lang || "code",
+            code: escapeHtml(code)
+        })
+
+        return `@@CODEBLOCK_${id}@@`
+    })
+
+    /* INLINE ESCAPE */
+    text = escapeHtml(text)
+
+    /* INLINE MD */
+    text = text.replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>")
+    text = text.replace(/\*(.*?)\*/g,"<em>$1</em>")
+    text = text.replace(/`([^`]+)`/g,"<code>$1</code>")
+    text = text.replace(/(https?:\/\/[^\s]+)/g,`<a href="$1" target="_blank">$1</a>`)
+    text = text.replace(/\n/g,"<br>")
+
+    /* RESTORE */
+    blocks.forEach((b,i)=>{
+
+const html = `
+<div class="code-wrapper">
+  <div class="code-header">
+    <span>${b.lang}</span>
+
+    <div class="code-actions">
+        <button class="run-code-btn" onclick="runCode(this)">Run</button>
+        <button class="copy-code-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+  </div>
+
+  <pre class="code-block"><code>${b.code}</code></pre>
+
+  <div class="code-output"></div>
+</div>
+`
+        text = text.replace(`@@CODEBLOCK_${i}@@`, html)
+    })
+
+    return text || ""
 }
+function downloadCode(btn){
 
+    const wrapper = btn.closest(".code-wrapper")
+    if(!wrapper) return
 
+    const code = wrapper.querySelector("code").innerText
+
+    const blob = new Blob([code], {type:"text/plain"})
+    const url = URL.createObjectURL(blob)
+
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "code.txt"
+    a.click()
+
+    URL.revokeObjectURL(url)
+}
+async function runCode(btn){
+
+    const wrapper = btn.closest(".code-wrapper")
+    if(!wrapper) return
+
+    const code = wrapper.querySelector("code")?.innerText || ""
+    const output = wrapper.querySelector(".code-output")
+
+    btn.classList.add("running")
+    btn.innerText = "Running..."
+    output.innerText = "Executing..."
+
+    try{
+
+        const res = await fetch("/run_block",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({code})
+        })
+
+        const data = await res.json()
+
+        output.innerText = data.output || data.error || "Done"
+
+        /* ⭐ call renderer */
+        showDownloads(data)
+
+    }catch(e){
+        console.error(e)
+        output.innerText = "Execution failed"
+    }
+
+    btn.classList.remove("running")
+    btn.innerText = "Run"
+}
+document.addEventListener("dragenter", ()=>{
+    if(!document.querySelector(".drop-overlay")){
+        const o=document.createElement("div")
+        o.className="drop-overlay"
+        o.innerText="Drop file to upload"
+        document.body.appendChild(o)
+    }
+})
+function showDownloads(data){
+
+    if(!data.files || !data.files.length) return
+
+    const list = document.getElementById("downloadList")
+    list.innerHTML = ""
+
+    data.files.forEach(file=>{
+        const a = document.createElement("a")
+        a.href = `/download/${data.uuid}/${file}`
+        a.innerText = "⬇ " + file
+        a.target = "_blank"
+        a.className = "download-btn"
+        list.appendChild(a)
+    })
+
+    document.getElementById("downloadOverlay").classList.add("show")
+}
+function closeDownload(){
+    document.getElementById("downloadOverlay").classList.remove("show")
+}
+document.addEventListener("dragleave", ()=>{
+    document.querySelector(".drop-overlay")?.remove()
+})
+
+document.addEventListener("drop", ()=>{
+    document.querySelector(".drop-overlay")?.remove()
+})
 async function sendMessage() {
 
     const input = document.getElementById("input")
     const text = input.value
-
-    if (!text) return
+    if (!text) return ""
 
     renderMessage("user", text)
-
     input.value = ""
-
     renderWritingIndicator()
+
+    let reader          // ⭐ OUTSIDE
+    let fullText = ""   // ⭐ OUTSIDE
+    let buffer = ""     // ⭐ OUTSIDE
 
     try {
 
         const res = await fetch("/chat", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
                 message: text,
                 chat_id: currentChat,
@@ -258,71 +381,66 @@ async function sendMessage() {
             })
         })
 
-        const reader = res.body.getReader()
+        reader = res.body.getReader()
         const decoder = new TextDecoder()
 
         removeWritingIndicator()
-        const container = document.createElement("div")
-        container.className = "message assistant"
+        
 
-        const bubble = document.createElement("div")
-        bubble.className = "bubble"
+const container = document.createElement("div")
+container.className = "message assistant"
 
-        container.appendChild(bubble)
-        document.getElementById("messages").appendChild(container)
+const avatar = document.createElement("div")
+avatar.className = "avatar"
+avatar.innerText = "AI"
 
-        let fullText = ""
-let buffer = ""
+const bubble = document.createElement("div")
+bubble.className = "bubble"
+bubble.classList.add("streaming")
+container.appendChild(avatar)
+container.appendChild(bubble)
 
-while (true) {
+document.getElementById("messages").appendChild(container)
 
-    const { done, value } = await reader.read()
+        bubble.innerHTML = "&nbsp;"
 
-    if (done) break
+        while (true) {
 
-    buffer += decoder.decode(value, { stream: true })
+            const { done, value } = await reader.read()
+            if (done) break
 
-    let lines = buffer.split("\n")
-    buffer = lines.pop()
+            buffer += decoder.decode(value, { stream: true })
 
-    for (const line of lines) {
+            let lines = buffer.split("\n")
+            buffer = lines.pop()
 
-        if (!line.trim()) continue
+            for (const line of lines) {
 
-        try {
+                if (!line.trim()) continue
 
-            const data = JSON.parse(line)
+                const data = JSON.parse(line)
 
-            if (data.chat_id)
-                currentChat = data.chat_id
+                if (data.chat_id) currentChat = data.chat_id
 
-            if (data.token) {
-
-                fullText += data.token
-
-                bubble.innerHTML = formatMessage(fullText)
-
-                scrollBottom()
+                if (data.token) {
+                    fullText += data.token
+                    bubble.innerHTML = formatMessage(fullText)
+                    scrollBottom()
+                }
             }
-
-        } catch (e) {
-
-            console.error("JSON parse error:", e, line)
-
         }
-
-    }
-}
-
-        bubble.innerHTML = formatMessage(fullText)
-
+        bubble.classList.remove("streaming")
         loadChats()
 
     } catch (err) {
 
+        console.error(err)
         removeWritingIndicator()
 
-        renderMessage("assistant", "Error: connection failed")
+        // ⭐ ONLY show error if nothing streamed
+        if (!fullText.trim()) {
+            renderMessage("assistant", "Error: connection failed")
+        }
     }
 }
 

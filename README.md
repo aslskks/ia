@@ -21,3 +21,5 @@ or web
 ```bash
 python main.py
 ```
+## mysql
+Install mysql and set your password "hola" for examples in production change it
