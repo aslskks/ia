@@ -57,9 +57,9 @@ model = WhisperModel(
     compute_type="int8",
     cpu_threads=8
 )
-def open_conn():
+def open_conn(bo: bool = False):
     conn = mysql.connect(host="localhost", user="root", password="hola", database="chat")
-    return conn, conn.cursor()
+    return conn, conn.cursor(dictionary=bo)
 def tavily_search(query):
     try:
         result = tavily.search(
@@ -371,7 +371,6 @@ def transcribe():
 
     for segment in segments:
         text += segment.text
-    print(text)
     return jsonify({
         "text": text,
         "language": info.language
@@ -414,9 +413,7 @@ def select_user_page():
 
 @app.route("/get_users")
 def get_users():
-    db = mysql.connect(host="localhost", user="root", password="hola", database="chat")
-
-    cursor = db.cursor()
+    conn, cursor = open_conn()
 
     cursor.execute("SELECT user FROM users")
 
@@ -435,10 +432,9 @@ def select_user_post():
 
     return "ok"
 def create_chat(user_id):
-    db = mysql.connect(host="localhost", user="root", password="hola", database="chat")
     chat_id = str(uuid_lib.uuid4())
 
-    cursor = db.cursor()
+    db, cursor = open_conn()
 
     cursor.execute(
         "INSERT INTO chats (id, user_id, title) VALUES (%s,%s,'New Chat')",
@@ -452,11 +448,9 @@ def create_chat(user_id):
 
 @app.route("/create_user", methods=["POST"])
 def create_user():
-    db = mysql.connect(host="localhost", user="root", password="hola", database="chat")
+    db, cursor = open_conn()
 
     username = request.json["username"]
-
-    cursor = db.cursor()
 
     cursor.execute(
         "INSERT IGNORE INTO users(user) VALUES(%s)",
@@ -473,8 +467,7 @@ def create_user():
 def delete_all_messages():
 
     username = session.get("user")
-    db = mysql.connect(host="localhost", user="root", password="hola", database="chat")
-    cursor = db.cursor()
+    db, cursor = open_conn()
     user_id = session.get("user_id")
 
     cursor.execute(
@@ -530,15 +523,7 @@ def get_messages(chat_id):
     if "user_id" not in session:
         return {"error": "unauthorized"}, 401
 
-    conn = mysql.connect(
-        host="localhost",
-        user="root",
-        password="hola",
-        database="chat"
-    )
-
-    cursor = conn.cursor(dictionary=True)  # 🔥 ESTA LINEA ES LA CLAVE
-
+    conn, cursor = open_conn(True)
     cursor.execute("""
         SELECT role, content
         FROM messages
@@ -575,39 +560,33 @@ def run_python_sandbox(code, uuid=None):
         text=True,
         encoding="utf-8",
         errors="replace",
-        timeout=5,
-        cwd=sandbox_dir   # ⭐⭐⭐ THIS IS THE FIX
+        timeout=20,
+        cwd=sandbox_dir
     )
-
     files = [f for f in os.listdir(sandbox_dir) if f != "script.py"]
-
     return {
         "output": result.stdout + result.stderr,
         "files": files,
         "uuid": uuid
     }
 
-
 @app.route("/download/<uuid>/<filename>")
 def download_file(uuid, filename):
     FILES_DIR = os.path.join(os.getcwd(), "files")
     sandbox_dir = os.path.join(FILES_DIR, uuid)
-
+    os.remove(FILES_DIR, uuid)
     return send_from_directory(sandbox_dir, filename, as_attachment=True)
 @app.post("/run_block")
 @csrf.exempt
 def run_block():
-
     if "user_id" not in session:
         return {"error":"not logged"},401
-
     data = request.json
+    uuid = data.get("chat_id","")
     code = data.get("code","")
-
     if not code:
         return {"error":"empty"},400
-    result = run_python_sandbox(code)
-
+    result = run_python_sandbox(code, uuid)
     return result
 @app.route("/chat", methods=["POST"])
 @csrf.exempt
@@ -623,14 +602,7 @@ def chat():
     if not user_message:
         return {"error": "empty message"}, 400
 
-    db = mysql.connect(
-        host="localhost",
-        user="root",
-        password="hola",
-        database="chat"
-    )
-
-    cursor = db.cursor(dictionary=True)
+    db, cursor = open_conn(True)
 
     # crear chat si no existe
     if not chat_id:
@@ -681,9 +653,12 @@ def chat():
                 (user_id,)
             )
             memories = "\n".join([m[0] for m in cursor.fetchall()])
+            cursor.close()
+            conn.close()
+            system_content = SYSTEM_PROMPT + "\n\nUser memories:\n" + memories
             stream = ollama.chat(
                 model="llama3.1:8b",
-                messages=[{"role":"system","content":SYSTEM_PROMPT}] + messages,
+                messages=[{"role":"system","content":system_content}] + messages,
                 stream=True
             )
             for chunk in stream:
@@ -695,48 +670,37 @@ def chat():
                     "token": token,
                     "chat_id": chat_id
                 }) + "\n"
+        except GeneratorExit:
+            return
         except Exception as e:
             print("STREAM ERROR:", e)
-        print("FINAL REPLY:", full_reply)
-        # =========================
-        # SEARCH AGENT LOOP
-        # =========================
-
-        search_query = extract_search(full_reply)
-
-        if search_query:
-            print("SEARCH NEEDED:", search_query)
-
-            try:
-                web_context = tavily_search(search_query)
-
-                followup_messages = messages + [
-                    {"role": "assistant", "content": full_reply},
-                    {"role": "system", "content": f"Web results:\n{web_context}\n\nAnswer the user question fully."}
-                ]
-                print(followup_messages)
-                stream2 = ollama.chat(
-                    model="llama3.1:8b",
-                    messages=[{"role":"system","content":SYSTEM_PROMPT}] + followup_messages,
-                    stream=True
-                )
-
-                full_reply = ""
-
-                for chunk in stream2:
-                    token = chunk["message"]["content"]
-                    if not token:
-                        continue
-
-                    full_reply += token
-                    yield json.dumps({
-                        "token": token,
-                        "chat_id": chat_id
-                    }) + "\n"
-
-            except Exception as e:
-                print("SEARCH ERROR:", e)
-
+        # search_query = extract_search(full_reply)
+        # if search_query:
+        #     print("SEARCH NEEDED:", search_query)
+        #     try:
+        #         web_context = tavily_search(search_query)
+        #         followup_messages = messages + [
+        #             {"role": "assistant", "content": full_reply},
+        #             {"role": "system", "content": f"Web results:\n{web_context}\n\nAnswer the user question fully." + f"\n system prompt: {SYSTEM_PROMPT}"}
+        #         ]
+        #         print(followup_messages)
+        #         stream2 = ollama.chat(
+        #             model="llama3.1:8b",
+        #             messages= followup_messages,
+        #             stream=True
+        #         )
+        #         full_reply = ""
+        #         for chunk in stream2:
+        #             token = chunk["message"]["content"]
+        #             if not token:
+        #                 continue
+        #             full_reply += token
+        #             yield json.dumps({
+        #                 "token": token,
+        #                 "chat_id": chat_id
+        #             }) + "\n"
+        #     except Exception as e:
+        #         print("SEARCH ERROR:", e)
         if full_reply.strip():
             conn2, cursor2 = open_conn()
             cursor2.execute(
@@ -746,50 +710,28 @@ def chat():
                 """,
                 (chat_id, full_reply)
             )
-
             conn2.commit()
-
-            print("Assistant saved")
-
             # =========================
             # AUTO GENERAR TITULO
             # =========================
-
             cursor2.execute(
                 "SELECT title FROM chats WHERE id=%s",
                 (chat_id,)
             )
-
             current_title = cursor2.fetchone()[0]
-
-            # solo si es nuevo
             if current_title == "New Chat":
-
                 try:
-
-                    new_title = generate_chat_title(user_message)
-
+                    context_for_title = user_message[:200] + " " + full_reply[:200]
+                    new_title = generate_chat_title(context_for_title)
                     cursor2.execute(
                         "UPDATE chats SET title=%s WHERE id=%s",
                         (new_title, chat_id)
                     )
-
                     conn2.commit()
-
-                    print("Title updated:", new_title)
-
                 except Exception as e:
-
                     print("TITLE ERROR:", e)
-
             cursor2.close()
             conn2.close()
-
-
-
-
-
-
     return Response(generate(), mimetype="text/plain")
 
 
@@ -994,8 +936,7 @@ def register():
 def delete_chat():
 
     data = request.json
-    db = mysql.connect(host='localhost', user="root", password="hola", database="chat")
-    cursor = db.cursor()
+    db, cursor = open_conn()
 
     cursor.execute(
         "DELETE FROM chats WHERE id=%s",
@@ -1011,8 +952,7 @@ def delete_chat():
 def rename_chat():
 
     data = request.json
-    db = mysql.connect(host='localhost', user="root", password="hola", database="chat")
-    cursor = db.cursor()
+    db, cursor = open_conn()
 
     cursor.execute(
         "UPDATE chats SET title=%s WHERE id=%s",
@@ -1023,10 +963,7 @@ def rename_chat():
 
     return {"status":"ok"}
 def save_message(chat_id, role, content):
-    db = mysql.connect(host="localhost", user="root", password="hola", database="chat")
-
-    cursor = db.cursor()
-
+    db, cursor = open_conn()
     cursor.execute(
         """
         INSERT INTO messages (chat_id, role, content)
@@ -1040,11 +977,8 @@ def save_message(chat_id, role, content):
 @app.route("/get_chats")
 @csrf.exempt
 def get_chats():
-    db = mysql.connect(host="localhost", user="root", password="hola", database="chat")
+    db, cursor = open_conn(True)
     user_id = session["user_id"]
-
-    cursor = db.cursor(dictionary=True)
-
     cursor.execute(
         """
         SELECT id, title
@@ -1066,11 +1000,9 @@ def get_chats():
 
 @app.route("/load_chat/<chat_id>")
 def load_chat(chat_id):
-    db = mysql.connect(host="localhost", user="root", password="hola", database="chat")
 
     user_id = session["user_id"]
-
-    cursor = db.cursor(dictionary=True)
+    conn, cursor = open_conn(True)
 
     cursor.execute(
         """

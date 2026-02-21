@@ -1,3 +1,4 @@
+let currentChat = localStorage.getItem("currentChat") || null
 let mediaRecorder;
 let audioChunks = [];
 let stream;
@@ -98,8 +99,6 @@ console.log("Texto:", data.text);
         sendMessage();
     }
 }
-
-let currentChat = null
 
 function escapeHtml(text) {
 
@@ -267,23 +266,6 @@ const html = `
 
     return text || ""
 }
-function downloadCode(btn){
-
-    const wrapper = btn.closest(".code-wrapper")
-    if(!wrapper) return
-
-    const code = wrapper.querySelector("code").innerText
-
-    const blob = new Blob([code], {type:"text/plain"})
-    const url = URL.createObjectURL(blob)
-
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "code.txt"
-    a.click()
-
-    URL.revokeObjectURL(url)
-}
 async function runCode(btn){
 
     const wrapper = btn.closest(".code-wrapper")
@@ -301,14 +283,15 @@ async function runCode(btn){
         const res = await fetch("/run_block",{
             method:"POST",
             headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({code})
+            body:JSON.stringify({
+                code,
+                chat_id: currentChat
+            })
         })
 
         const data = await res.json()
 
         output.innerText = data.output || data.error || "Done"
-
-        /* ⭐ call renderer */
         showDownloads(data)
 
     }catch(e){
@@ -358,16 +341,16 @@ document.addEventListener("drop", ()=>{
 async function sendMessage() {
 
     const input = document.getElementById("input")
-    const text = input.value
-    if (!text) return ""
+    const text = input.value.trim()
+    if (!text) return
 
     renderMessage("user", text)
     input.value = ""
     renderWritingIndicator()
 
-    let reader          // ⭐ OUTSIDE
-    let fullText = ""   // ⭐ OUTSIDE
-    let buffer = ""     // ⭐ OUTSIDE
+    let reader
+    let fullText = ""
+    let buffer = ""
 
     try {
 
@@ -376,7 +359,7 @@ async function sendMessage() {
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
                 message: text,
-                chat_id: currentChat,
+                chat_id: currentChat,   // ⭐ ENVIA CHAT ACTUAL
                 stream: true
             })
         })
@@ -385,24 +368,30 @@ async function sendMessage() {
         const decoder = new TextDecoder()
 
         removeWritingIndicator()
-        
 
-const container = document.createElement("div")
-container.className = "message assistant"
+        /* =========================
+           CREATE ASSISTANT BUBBLE
+        ========================= */
 
-const avatar = document.createElement("div")
-avatar.className = "avatar"
-avatar.innerText = "AI"
+        const container = document.createElement("div")
+        container.className = "message assistant"
 
-const bubble = document.createElement("div")
-bubble.className = "bubble"
-bubble.classList.add("streaming")
-container.appendChild(avatar)
-container.appendChild(bubble)
+        const avatar = document.createElement("div")
+        avatar.className = "avatar"
+        avatar.innerText = "AI"
 
-document.getElementById("messages").appendChild(container)
+        const bubble = document.createElement("div")
+        bubble.className = "bubble streaming"
+
+        container.appendChild(avatar)
+        container.appendChild(bubble)
+        document.getElementById("messages").appendChild(container)
 
         bubble.innerHTML = "&nbsp;"
+
+        /* =========================
+           STREAM LOOP
+        ========================= */
 
         while (true) {
 
@@ -420,8 +409,13 @@ document.getElementById("messages").appendChild(container)
 
                 const data = JSON.parse(line)
 
-                if (data.chat_id) currentChat = data.chat_id
+                /* ⭐ CAPTURAR CHAT ID */
+                if (data.chat_id) {
+                    currentChat = data.chat_id
+                    localStorage.setItem("currentChat", currentChat)
+                }
 
+                /* ⭐ STREAM TOKEN */
                 if (data.token) {
                     fullText += data.token
                     bubble.innerHTML = formatMessage(fullText)
@@ -429,6 +423,7 @@ document.getElementById("messages").appendChild(container)
                 }
             }
         }
+
         bubble.classList.remove("streaming")
         loadChats()
 
@@ -437,7 +432,6 @@ document.getElementById("messages").appendChild(container)
         console.error(err)
         removeWritingIndicator()
 
-        // ⭐ ONLY show error if nothing streamed
         if (!fullText.trim()) {
             renderMessage("assistant", "Error: connection failed")
         }
@@ -445,13 +439,11 @@ document.getElementById("messages").appendChild(container)
 }
 
 
-function newChat() {
-
+function newChat(){
     currentChat = null
-
-    document.getElementById("messages").innerHTML = ""
+    localStorage.removeItem("currentChat")
+    clearMessages()
 }
-
 async function loadChats() {
 
     const res = await fetch("/get_chats")
@@ -632,9 +624,6 @@ function toggleUserMenu(event){
     menu.style.left = rect.left + "px";
     menu.style.top = (rect.top - menu.offsetHeight - 10) + "px";
 }
-
-
-/* cerrar al hacer click fuera */
 document.addEventListener("click", function(){
 
     const menu = document.querySelector(".user-menu");
