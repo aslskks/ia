@@ -674,33 +674,6 @@ def chat():
             return
         except Exception as e:
             print("STREAM ERROR:", e)
-        # search_query = extract_search(full_reply)
-        # if search_query:
-        #     print("SEARCH NEEDED:", search_query)
-        #     try:
-        #         web_context = tavily_search(search_query)
-        #         followup_messages = messages + [
-        #             {"role": "assistant", "content": full_reply},
-        #             {"role": "system", "content": f"Web results:\n{web_context}\n\nAnswer the user question fully." + f"\n system prompt: {SYSTEM_PROMPT}"}
-        #         ]
-        #         print(followup_messages)
-        #         stream2 = ollama.chat(
-        #             model="llama3.1:8b",
-        #             messages= followup_messages,
-        #             stream=True
-        #         )
-        #         full_reply = ""
-        #         for chunk in stream2:
-        #             token = chunk["message"]["content"]
-        #             if not token:
-        #                 continue
-        #             full_reply += token
-        #             yield json.dumps({
-        #                 "token": token,
-        #                 "chat_id": chat_id
-        #             }) + "\n"
-        #     except Exception as e:
-        #         print("SEARCH ERROR:", e)
         if full_reply.strip():
             conn2, cursor2 = open_conn()
             cursor2.execute(
@@ -711,9 +684,6 @@ def chat():
                 (chat_id, full_reply)
             )
             conn2.commit()
-            # =========================
-            # AUTO GENERAR TITULO
-            # =========================
             cursor2.execute(
                 "SELECT title FROM chats WHERE id=%s",
                 (chat_id,)
