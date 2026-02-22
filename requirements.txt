@@ -1,0 +1,7 @@
+flask,
+flask_wtf,
+mysql-connector-python,
+faster-whisper,
+passlib[argon2],
+ollama,
+requests

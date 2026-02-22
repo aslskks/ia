@@ -1,40 +1,22 @@
+### Import
 from flask import Flask, request, session, render_template, Response, redirect, url_for, jsonify, send_from_directory
+from email.message import EmailMessage
+from datetime import timedelta, datetime
+from faster_whisper import WhisperModel
+from flask_wtf import CSRFProtect
+from passlib.hash import argon2
 import json
 import ollama
 import secrets
 import os
 import uuid as uuid_lib
 import mysql.connector as mysql
-from flask_wtf import CSRFProtect
-from passlib.hash import argon2
 import requests
 import smtplib
 import ssl
-from email.message import EmailMessage
-import ssl
-from datetime import timedelta, datetime
-from faster_whisper import WhisperModel
-from tavily import TavilyClient
 import re
 import subprocess
 
-tavily = TavilyClient(api_key="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")
-def tavily_search(query):
-    response = tavily.search(
-        query=query,
-        search_depth="advanced",   # or "advanced"
-        max_results=5
-    )
-
-    results = []
-    for r in response["results"]:
-        results.append({
-            "title": r["title"],
-            "url": r["url"],
-            "content": r["content"]
-        })
-
-    return results
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
@@ -60,23 +42,6 @@ model = WhisperModel(
 def open_conn(bo: bool = False):
     conn = mysql.connect(host="localhost", user="root", password="hola", database="chat")
     return conn, conn.cursor(dictionary=bo)
-def tavily_search(query):
-    try:
-        result = tavily.search(
-            query=query,
-            search_depth="advanced",
-            max_results=5
-        )
-
-        formatted = "\n\n".join([
-            f"{r['title']}\n{r['content']}\n{r['url']}"
-            for r in result["results"]
-        ])
-        return formatted
-
-    except Exception as e:
-        print("TAVILY ERROR:", e)
-        return ""
 conn, cursor = open_conn()
 cursor.execute("""CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -95,19 +60,12 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS chats (
 );
 """)
 cursor.execute("""CREATE TABLE IF NOT EXISTS messages (
-
     id INT AUTO_INCREMENT PRIMARY KEY,
-
     chat_id CHAR(36) NOT NULL,
-
     role ENUM('user','assistant') NOT NULL,
-
     content TEXT NOT NULL,
-
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
     FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
-
 );
 """)
 cursor.execute("""CREATE TABLE IF NOT EXISTS codes(
@@ -154,33 +112,6 @@ def extract_search(text):
 conn.commit()
 cursor.close()
 conn.close()
-def extract_and_store_memory(user_id, conversation_text):
-
-    prompt = f"""
-Extract important long-term user information.
-Only store stable facts (preferences, goals, skills).
-If nothing important, respond ONLY with: NONE
-
-Conversation:
-{conversation_text}
-"""
-
-    response = ollama.chat(
-        model="llama3.1:8b",
-        messages=[{"role":"user","content":prompt}]
-    )
-
-    result = response["message"]["content"].strip()
-
-    if result != "NONE":
-        conn, cursor = open_conn()
-        cursor.execute(
-            "INSERT INTO user_memory (user_id, memory) VALUES (%s,%s)",
-            (user_id, result)
-        )
-        conn.commit()
-        cursor.close()
-        conn.close()
 
 @app.route("/me")
 def me():
@@ -456,7 +387,6 @@ def create_user():
         "INSERT IGNORE INTO users(user) VALUES(%s)",
         (username,)
     )
-
     db.commit()
 
     return "ok"
@@ -538,9 +468,29 @@ def get_messages(chat_id):
 
     return jsonify(rows)
 
-def run_python_sandbox(code, uuid=None):
+import sys
 
-    import uuid as uuid_lib
+
+def install_package(pkg, cwd):
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", pkg],
+            capture_output=True,
+            text=True,
+            cwd=cwd,
+            timeout=300 
+        )
+        return True
+    except Exception:
+        return False
+
+
+def extract_missing_module(output):
+    match = re.search(r"No module named ['\"](.+?)['\"]", output)
+    return match.group(1) if match else None
+
+
+def run_python_sandbox(code, uuid=None):
 
     if uuid is None:
         uuid = str(uuid_lib.uuid4())
@@ -554,28 +504,55 @@ def run_python_sandbox(code, uuid=None):
     with open(script_path, "w", encoding="utf-8") as f:
         f.write(code)
 
-    result = subprocess.run(
-        ["python", script_path],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=20,
-        cwd=sandbox_dir
-    )
+    installed = set()
+    output = ""
+    for _ in range(5):
+
+        try:
+            result = subprocess.run(
+                [sys.executable, script_path],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=40,
+                cwd=sandbox_dir,
+                input=""  # prevents input() blocking
+            )
+
+            output = result.stdout + result.stderr
+
+        except subprocess.TimeoutExpired as e:
+            output = (e.stdout or "") + (e.stderr or "")
+            output += "\n⏱️ Execution timed out after 40 seconds"
+            break
+
+        missing = extract_missing_module(output)
+
+        if not missing:
+            break
+
+        if missing in installed:
+            output += f"\n⚠️ Failed to install {missing}"
+            break
+        installed.add(missing)
+        ok = install_package(missing, sandbox_dir)
+
+        if not ok:
+            output += f"\n⚠️ pip install failed for {missing}"
+            break
+
     files = [f for f in os.listdir(sandbox_dir) if f != "script.py"]
+
     return {
-        "output": result.stdout + result.stderr,
+        "output": output,
         "files": files,
         "uuid": uuid
     }
-
 @app.route("/download/<uuid>/<filename>")
 def download_file(uuid, filename):
-    FILES_DIR = os.path.join(os.getcwd(), "files")
-    sandbox_dir = os.path.join(FILES_DIR, uuid)
-    os.remove(FILES_DIR, uuid)
-    return send_from_directory(sandbox_dir, filename, as_attachment=True)
+    FILES_DIR = os.path.join(os.path.join(os.getcwd(), "files"), uuid)
+    return send_from_directory(FILES_DIR, filename, as_attachment=True)
 @app.post("/run_block")
 @csrf.exempt
 def run_block():
@@ -588,6 +565,24 @@ def run_block():
         return {"error":"empty"},400
     result = run_python_sandbox(code, uuid)
     return result
+@app.post("/delete-download")
+@csrf.exempt
+def delete_download():
+    data = request.json
+    files = data.get("files", [])
+    chat_uuid = data.get("chat_id", "")
+    base_path = os.path.join("files", chat_uuid)
+    for file in files:
+        path = os.path.join(base_path, file)
+        path2 = os.path.join(base_path, "script.py")
+        if os.path.exists(path):
+            os.remove(path)
+        if os.path.exists(path2):
+            os.remove(path2)
+        if not os.listdir(base_path):
+            os.removedirs(base_path)
+            print("done")
+    return {"ok": True}
 @app.route("/chat", methods=["POST"])
 @csrf.exempt
 def chat():
@@ -983,9 +978,7 @@ def load_chat(chat_id):
     )
 
     if not cursor.fetchone():
-        return {"error":"Unauthorized"}, 403
-
-
+        return {"error":"Unaudthorized"}, 403
     cursor.execute(
         """
         SELECT role, content

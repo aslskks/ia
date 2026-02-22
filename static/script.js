@@ -3,6 +3,10 @@ let mediaRecorder;
 let audioChunks = [];
 let stream;
 let isRecording = false;
+let currentDownloadUUID = null;
+let files = null;
+
+
 
 const voiceBtn = document.getElementById("voiceBtn");
 
@@ -302,21 +306,15 @@ async function runCode(btn){
     btn.classList.remove("running")
     btn.innerText = "Run"
 }
-document.addEventListener("dragenter", ()=>{
-    if(!document.querySelector(".drop-overlay")){
-        const o=document.createElement("div")
-        o.className="drop-overlay"
-        o.innerText="Drop file to upload"
-        document.body.appendChild(o)
-    }
-})
+
 function showDownloads(data){
 
     if(!data.files || !data.files.length) return
+    currentDownloadUUID = data.uuid;   // ⭐ GUARDAR UUID 
 
     const list = document.getElementById("downloadList")
-    list.innerHTML = ""
-
+    list.innerHTML = "" 
+    files = data.files
     data.files.forEach(file=>{
         const a = document.createElement("a")
         a.href = `/download/${data.uuid}/${file}`
@@ -328,16 +326,18 @@ function showDownloads(data){
 
     document.getElementById("downloadOverlay").classList.add("show")
 }
-function closeDownload(){
+async function closeDownload(){
+    await fetch("/delete-download",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            chat_id: currentChat,
+            files: files
+        })
+    })
     document.getElementById("downloadOverlay").classList.remove("show")
+    currentDownloadUUID = null;
 }
-document.addEventListener("dragleave", ()=>{
-    document.querySelector(".drop-overlay")?.remove()
-})
-
-document.addEventListener("drop", ()=>{
-    document.querySelector(".drop-overlay")?.remove()
-})
 async function sendMessage() {
 
     const input = document.getElementById("input")
@@ -439,10 +439,15 @@ async function sendMessage() {
 }
 
 
-function newChat(){
-    currentChat = null
-    localStorage.removeItem("currentChat")
-    clearMessages()
+async function newChat(){
+    const res = await fetch("/new_chat",{
+        method:"POST"
+    });
+    const data = await res.json();
+    currentChat = data.chat_id;
+    localStorage.setItem("currentChat", currentChat);
+    document.getElementById("messages").innerHTML = "";
+    loadChats();
 }
 async function loadChats() {
 
