@@ -1,286 +1,409 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+/* =========================
+   FONTS (MATCH AI UI)
+========================= */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap');
 
+/* =========================
+   TOKENS (FROM AI PAGE)
+========================= */
+:root {
+    --bg:           #0d0e11;
+    --surface-1:    #13151a;
+    --surface-2:    #1a1d24;
+    --surface-3:    #21252f;
+    --surface-4:    #282d38;
+
+    --border:       rgba(255,255,255,0.07);
+    --border-focus: rgba(99,179,237,0.55);
+
+    --accent:       #63b3ed;
+    --accent-dim:   rgba(99,179,237,0.12);
+    --accent-glow:  rgba(99,179,237,0.25);
+
+    --green:        #48bb78;
+    --green-dim:    rgba(72,187,120,0.12);
+
+    --red:          #fc8181;
+    --red-dim:      rgba(252,129,129,0.10);
+
+    --text-1:       #f0f2f5;
+    --text-2:       #9aa3b2;
+    --text-3:       #5c6474;
+
+    --radius:       14px;
+    --radius-sm:    8px;
+    --transition:   0.18s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* =========================
+   RESET
+========================= */
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Poppins', sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 body {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background: #000;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-1);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
 }
 
-/* ================= CARD ================= */
-
+/* =========================
+   CARD
+========================= */
 .wrapper {
-  position: relative; /* clave para el botón */
-  width: 400px;
-  height: 600px;
-  background: #000;
-  box-shadow: 0 0 50px #0ef;
-  border-radius: 20px;
-  padding: 40px;
-  overflow: hidden;
-  transition: box-shadow 1s linear;
+    position: relative;
+    width: 400px;
+    height: 600px;
+
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+
+    padding: 32px;
+    overflow: hidden;
+
+    transition: var(--transition);
 }
 
 .wrapper:hover {
-  box-shadow: 0 0 50px #f0e, 0 0 50px #0ef;
+    border-color: rgba(255,255,255,0.12);
 }
 
-/* ================= FORMS ================= */
-
+/* =========================
+   FORMS
+========================= */
 .form-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-  transition: 1s ease-in-out;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    transition: var(--transition);
 }
 
-.wrapper.active .form-wrapper.sign-in {
-  transform: translateY(-600px);
+.wrapper.active .sign-in {
+    transform: translateY(-600px);
 }
 
-.wrapper .form-wrapper.sign-up {
-  position: absolute;
-  top: 580px;
-  left: 0;
+.wrapper .sign-up {
+    position: absolute;
+    top: 580px;
+    left: 0;
 }
 
-.wrapper.active .form-wrapper.sign-up {
-  transform: translateY(-530px);
+.wrapper.active .sign-up {
+    transform: translateY(-530px);
 }
 
 h2 {
-  font-size: 30px;
-  color: #fff;
-  text-align: center;
+    font-size: 22px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 12px;
 }
 
-/* ================= INPUTS ================= */
-
+/* =========================
+   INPUTS
+========================= */
 .input-group {
-  position: relative;
-  margin: 30px 0;
-  border-bottom: 2px solid #fff;
-}
-
-.input-group label {
-  position: absolute;
-  top: 50%;
-  left: 5px;
-  transform: translateY(-50%);
-  font-size: 16px;
-  color: #fff;
-  pointer-events: none;
-  transition: .5s;
+    position: relative;
+    margin: 22px 0;
 }
 
 .input-group input {
-  width: 320px;
-  height: 40px;
-  font-size: 16px;
-  color: #fff;
-  padding: 0 5px;
-  background: transparent;
-  border: none;
-  outline: none;
+    width: 100%;
+    height: 42px;
+
+    padding: 10px 12px;
+
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+
+    background: var(--surface-3);
+    color: var(--text-1);
+
+    outline: none;
+    font-size: 14px;
+
+    transition: var(--transition);
+}
+
+.input-group input:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.input-group label {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+
+    font-size: 13px;
+    color: var(--text-3);
+
+    pointer-events: none;
+    transition: var(--transition);
+
+    background: var(--surface-3);
+    padding: 0 4px;
 }
 
 .input-group input:focus ~ label,
 .input-group input:valid ~ label {
-  top: -5px;
+    top: -8px;
+    font-size: 11px;
+    color: var(--accent);
 }
 
-/* ================= REMEMBER ================= */
-
-.remember {
-  margin: -5px 0 15px 5px;
-}
-
-.remember label {
-  color: #fff;
-  font-size: 14px;
-}
-
-.remember label input {
-  accent-color: #0ef;
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  margin-right: 5px;
-  appearance: none;
-  -webkit-appearance: none;
-  background-color: #000;
-  border: 2px solid #0ef;
-  border-radius: 3px;
-  position: relative;
-}
-
-.remember label input:checked {
-  background-color: #0ef;
-}
-
-.remember label input:checked::after {
-  content: '✓';
-  position: absolute;
-  color: #000;
-  font-size: 12px;
-  font-weight: bold;
-  left: 2px;
-  top: -2px;
-}
-
-/* ================= BUTTONS ================= */
-
-button {
-  width: 100%;
-  height: 40px;
-  background: #0ef;
-  box-shadow: 0 0 10px #0ef;
-  font-size: 16px;
-  color: #000;
-  font-weight: 500;
-  cursor: pointer;
-  border-radius: 30px;
-  border: none;
-  outline: none;
-}
-
-/* ================= LINKS ================= */
-
-.signUp-link,
-.forgot {
-  font-size: 14px;
-  text-align: center;
-  margin: 15px 0;
-}
-
-.signUp-link p,
-.forgot p {
-  color: #fff;
-}
-
-.signUp-link p a,
-.forgot p a {
-  color: #0ef;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.signUp-link p a:hover,
-.forgot p a:hover {
-  text-decoration: underline;
-}
-
-/* ================= MESSAGES ================= */
-
-.error-message {
-  background-color: #ff4444;
-  color: #fff;
-  padding: 10px 15px;
-  border-radius: 5px;
-  margin-bottom: 15px;
-  font-size: 14px;
-  text-align: center;
-  border-left: 4px solid #ff0000;
-}
-
-.success-message {
-  background-color: #00aa44;
-  color: #fff;
-  padding: 10px 15px;
-  border-radius: 5px;
-  margin-bottom: 15px;
-  font-size: 14px;
-  text-align: center;
-  border-left: 4px solid #00ff00;
-}
-
-/* ================= PASSKEY BUTTON ================= */
-.passkey-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center; /* centra icono + texto dentro del botón */
-  gap: 10px;
-
-  width: 250px;
-  height: 50px;
-
-  background-color: #0ef;
-  color: #000;
-  font-size: 16px;
-  font-weight: 600;
-  border: none;
-  border-radius: 8px;
-
-  cursor: pointer;
-  box-shadow: 0 0 10px #0ef;
-  transition: 0.2s ease;
-
-  /* CENTRADO absoluto dentro del wrapper */
-  position: absolute;
-  left: 50%;
-  bottom: 20px;       /* distancia desde abajo de la tarjeta */
-  transform: translateX(-50%);
-}
-
-.passkey-btn:hover {
-  background-color: #0bf;
-  box-shadow: 0 0 20px #0ef;
-}
-
-.passkey-btn img {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-}
+/* =========================
+   PASSWORD EYE
+========================= */
 .toggle-eye {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
 }
 
 .toggle-eye svg {
-  width: 100%;
-  height: 100%;
+    width: 20px;
+    height: 20px;
 }
 
-.toggle-eye .eye-open {
-  display: block; /* el ojo abierto se ve al inicio */
-  width: 24px;
-  height: 24px;
-  cursor: pointer;
+.eye-open,
+.eye-closed {
+    stroke: var(--text-3);
+    fill: none;
 }
 
-.toggle-eye .eye-closed {
-  display: none; /* el ojo cerrado se oculta al inicio */
-  width: 24px;
-  height: 24px;
-  cursor: pointer;
+.toggle-eye:hover .eye-open,
+.toggle-eye:hover .eye-closed {
+    stroke: var(--text-1);
 }
+
+/* =========================
+   REMEMBER
+========================= */
+.remember {
+    margin: 6px 0 14px;
+}
+
+.remember label {
+    font-size: 13px;
+    color: var(--text-2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.remember input {
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+/* =========================
+   BUTTON
+========================= */
+button {
+    width: 100%;
+    height: 42px;
+
+    border-radius: var(--radius-sm);
+    border: none;
+
+    background: var(--accent);
+    color: #0d0e11;
+
+    font-weight: 600;
+    font-size: 14px;
+
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+button:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
+button:active {
+    transform: scale(0.97);
+}
+
+/* =========================
+   LINKS
+========================= */
+.signUp-link,
+.forgot {
+    text-align: center;
+    font-size: 13px;
+    margin: 14px 0;
+    color: var(--text-2);
+}
+
+.signUp-link a,
+.forgot a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.signUp-link a:hover,
+.forgot a:hover {
+    text-decoration: underline;
+}
+
+/* =========================
+   ALERTS
+========================= */
+.error-message {
+    background: var(--red-dim);
+    color: var(--red);
+    border-left: 3px solid var(--red);
+
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+
+    font-size: 13px;
+}
+
+.success-message {
+    background: var(--green-dim);
+    color: var(--green);
+    border-left: 3px solid var(--green);
+
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+
+    font-size: 13px;
+}
+
+/* =========================
+   CAPTCHA
+========================= */
 .captcha-container {
     display: flex;
     justify-content: center;
-    align-items: center;
-    margin: 15px 0;
+    margin: 10px 0;
 }
 
 .g-recaptcha {
-    transform: scale(0.95);
-    transform-origin: center;
+    transform: scale(0.9);
+}
+
+/* =========================
+   MOBILE
+========================= */
+@media (max-width: 480px) {
+    .wrapper {
+        width: 92%;
+        height: auto;
+        padding: 24px;
+    }
+
+    .wrapper.active .sign-in {
+        transform: translateY(-100%);
+    }
+
+    .wrapper .sign-up {
+        top: 100%;
+    }
+}
+/* =========================
+   LAYOUT
+========================= */
+.auth-container {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+}
+
+/* LEFT SIDE */
+.auth-left {
+    flex: 1;
+    background: radial-gradient(
+        circle at 30% 40%,
+        rgba(99,179,237,0.12),
+        transparent 60%
+    ),
+    radial-gradient(
+        circle at 70% 60%,
+        rgba(72,187,120,0.10),
+        transparent 60%
+    ),
+    var(--bg);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-right: 1px solid var(--border);
+}
+
+.auth-content {
+    max-width: 420px;
+    padding: 40px;
+}
+
+.auth-content h1 {
+    font-size: 34px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.auth-content p {
+    font-size: 15px;
+    color: var(--text-2);
+}
+
+/* RIGHT SIDE */
+.auth-right {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--bg);
+}
+
+/* =========================
+   CARD UPGRADE
+========================= */
+.wrapper {
+    backdrop-filter: blur(10px);
+    background: rgba(26,29,36,0.75);
+    border: 1px solid var(--border);
+}
+
+/* subtle glow */
+.wrapper::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: 0 0 60px rgba(99,179,237,0.08);
+}
+
+/* =========================
+   MOBILE
+========================= */
+@media (max-width: 900px) {
+    .auth-left {
+        display: none;
+    }
+
+    .auth-right {
+        flex: 1;
+    }
 }

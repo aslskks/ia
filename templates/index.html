@@ -17,7 +17,19 @@
 </head>
 
 <body>
-  <div class="wrapper">
+<div class="auth-container">
+
+  <!-- LEFT SIDE (branding / AI vibe) -->
+  <div class="auth-left">
+    <div class="auth-content">
+      <h1>Your AI Assistant</h1>
+      <p>Ask anything. Build faster. Think smarter.</p>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDE (your existing forms) -->
+  <div class="auth-right">
+    <div class="wrapper">
     <!-- LOGIN -->
     <div class="form-wrapper sign-in">
       <form action="/login" method="POST" id="login-form">
@@ -213,14 +225,14 @@ function renderV2IfNeeded() {
 
   if (login) {
     grecaptcha.render(login, {
-      sitekey: "6Ld642MsAAAAAADiwhk9IFs-WmOyvLT3DzPHp_3I",
+      sitekey: "6LfmLmQsAAAAAGMZzFEhv26tJb30lUuyK3yxuG9R",
       theme: "dark"
     });
   }
 
   if (register) {
     grecaptcha.render(register, {
-      sitekey: "6Ld642MsAAAAAADiwhk9IFs-WmOyvLT3DzPHp_3I",
+      sitekey: "6LfmLmQsAAAAAGMZzFEhv26tJb30lUuyK3yxuG9R",
       theme: "dark"
     });
   }
@@ -239,7 +251,7 @@ function renderCaptchaLogin() {
     if (!el) return;
 
     grecaptcha.render(el, {
-        sitekey: "6Ld642MsAAAAAADiwhk9IFs-WmOyvLT3DzPHp_3I"
+        sitekey: "6Lf4MWQsAAAAACOXbYGLLLng18cGFb5RbdXrQZrr"
     });
 
     captchaLoginRendered = true;
@@ -251,7 +263,7 @@ function renderCaptchaRegister() {
     if (!el) return;
 
     grecaptcha.render(el, {
-        sitekey: "6Ld642MsAAAAAADiwhk9IFs-WmOyvLT3DzPHp_3I"
+        sitekey: "6Lf4MWQsAAAAACOXbYGLLLng18cGFb5RbdXrQZrr"
     });
 
     captchaRegisterRendered = true;

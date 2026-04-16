@@ -338,6 +338,16 @@ async function closeDownload(){
     document.getElementById("downloadOverlay").classList.remove("show")
     currentDownloadUUID = null;
 }
+function updateActiveChatUI() {
+
+    document.querySelectorAll(".chat-item").forEach(el => {
+        el.classList.remove("active")
+
+        if (el.dataset.chatId === currentChat) {
+            el.classList.add("active")
+        }
+    })
+}
 async function sendMessage() {
 
     const input = document.getElementById("input")
@@ -456,17 +466,15 @@ async function loadChats() {
 
     const list = document.getElementById("chatList")
 
-    if (!list) {
-        console.error("chatList no existe")
-        return
-    }
-
     list.innerHTML = ""
 
     for (const id in chats) {
 
         const div = document.createElement("div")
         div.className = "chat-item"
+
+        // ⭐ store chat id directly on element
+        div.dataset.chatId = id
 
         if (id === currentChat)
             div.classList.add("active")
@@ -496,23 +504,21 @@ async function loadChats() {
 
 
 async function loadChat(chat_id) {
-
     currentChat = chat_id
+    localStorage.setItem("currentChat", currentChat)
 
     const res = await fetch("/messages/" + chat_id)
-
     const data = await res.json()
 
     const messages = document.getElementById("messages")
-
     messages.innerHTML = ""
 
     for (const msg of data) {
-
-        renderMessage(msg.role, msg.content)
-
+        renderMessage(msg[0], msg[1])
     }
 
+    // ⭐ update UI WITHOUT reloading chats
+    updateActiveChatUI()
 }
 
 
