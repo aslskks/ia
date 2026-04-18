@@ -98,16 +98,6 @@ def _init_db():
         );
         """)
 
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS user_memory (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            fact TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        );
-        """)
-
         conn.commit()
     finally:
         cursor.close()
@@ -125,60 +115,6 @@ def extract_python_blocks(text):
     pattern = r"```(.*?)```"
     matches = re.findall(pattern, text, re.DOTALL)
     return [m.strip() for m in matches]
-
-
-TAVILY_API_KEY = "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"
-
-
-def perform_search(query: str, max_results: int = 5) -> str:
-    try:
-        resp = requests.post(
-            "https://api.tavily.com/search",
-            json={
-                "api_key": TAVILY_API_KEY,
-                "query": query,
-                "max_results": max_results
-            },
-            timeout=5
-        )
-        resp.raise_for_status()
-        data = resp.json()
-
-        results = []
-        for r in data.get("results", []):
-            title = r.get("title", "No title")
-            url = r.get("url", "")
-            content = r.get("content", "")
-            results.append(f"- {title}\n  {content}\n  ({url})")
-
-        if not results:
-            return f"[No results found for: {query}]"
-
-        return f"[Tavily search: '{query}']\n" + "\n\n".join(results)
-
-    except requests.exceptions.Timeout:
-        return f"[Search timed out for: {query}]"
-    except requests.exceptions.ConnectionError:
-        return f"[Search connection failed for: {query}]"
-    except Exception as e:
-        return f"[Search failed: {e}]"
-
-
-def extract_search(text):
-    match = re.search(r"\?\?\?(.*?)\?\?\?", text, re.DOTALL)
-    if not match:
-        return None
-
-    q = match.group(1).strip()
-    q = q.replace('"', '').replace("'", "")
-    q = re.sub(
-        r'^(búsqueda\s+por|buscar\s+por|buscar|búsqueda|search\s+for|search|lookup)\s+',
-        '',
-        q,
-        flags=re.I
-    )
-    return q.strip()
-
 
 def send_email(receiver, subject, title, button_text, link):
     text_body = f"""
@@ -793,38 +729,8 @@ def chat():
                 stream=False
             )
             probe = first_response["message"]["content"]
-            search_query = extract_search(probe)
-
-            if search_query:
-                yield json.dumps({"token": f"🔍 Searching: *{search_query}*…\n\n", "chat_id": chat_id}) + "\n"
-                search_results = perform_search(search_query)
-
-                augmented_messages = base_messages + [
-                    {
-                        "role": "system",
-                        "content": (
-                            f"The following are real-time web search results for the query '{search_query}'. "
-                            f"Use them to answer the user. Do NOT emit ???...??? tags again.\n\n"
-                            f"{search_results}"
-                        )
-                    }
-                ]
-
-                stream = ollama.chat(
-                    model=ollama_model,
-                    messages=augmented_messages,
-                    stream=True
-                )
-
-                for chunk in stream:
-                    token = chunk["message"]["content"]
-                    if not token:
-                        continue
-                    full_reply += token
-                    yield json.dumps({"token": token, "chat_id": chat_id}) + "\n"
-            else:
-                full_reply = probe
-                yield json.dumps({"token": probe, "chat_id": chat_id}) + "\n"
+            full_reply = probe
+            yield json.dumps({"token": probe, "chat_id": chat_id}) + "\n"
 
         except GeneratorExit:
             return
@@ -1073,4 +979,4 @@ def load_chat(chat_id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, use_reloader=False)
+    app.run(debug=True, use_reloader=False, host='0.0.0.0')
